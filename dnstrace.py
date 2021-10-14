@@ -2,7 +2,7 @@
 from scapy.all import *
 from time import sleep
 sleeptime = 1
-for myttl in range(30,33):
+for myttl in range(40):
     i = 0
     while i < 3:
         i += 1
