@@ -20,11 +20,12 @@ blocked_addr = "www.twitter.com"
 request_addr = accessible_addr
 multi_graph = nx.MultiGraph()
 multi_graph.add_node(1, label = "this device", color = device_color)
-for current_ttl in range(0,5):
+for current_ttl in range(0,30):
     request_addr = accessible_addr
     request_color = request_access_color
     i = 0
     ii = 0
+    print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
     while i < 3:
         dns_request = IP(dst=request_ip[i], id=RandShort(), ttl=current_ttl)/UDP(sport=RandShort(), dport=53)/DNS(rd=1, id=RandShort(), qd=DNSQR(qname=request_addr))
         print(">>>request:" + "   ip.dst: " + dns_request[IP].dst + "   ip.ttl: " + str(current_ttl))
@@ -42,17 +43,19 @@ for current_ttl in range(0,5):
                 device_color = router_color
             print("   <<< answer:" + "   ip.src: " + req_answer[IP].src + "   ip.ttl: " + str(req_answer[IP].ttl) + "   back-ttl: " + str(backttl))
             print("      " + req_answer.summary())
-            current_ip_id = int(ipaddress.IPv4Address(req_answer[IP].src))
-            if not multi_graph.has_node(current_ip_id) :
-                multi_graph.add_node(current_ip_id, label = req_answer[IP].src, color = device_color, title = str(current_ttl))
-            multi_graph.add_edge(previous_ip_id[ii][i], current_ip_id, color = request_color[i], title = str(backttl))
-            previous_ip_id[ii][i] = current_ip_id
+            if int(ipaddress.IPv4Address(request_ip[i])) != previous_ip_id[ii][i] :
+                current_ip_id = int(ipaddress.IPv4Address(req_answer[IP].src))
+                if not multi_graph.has_node(current_ip_id) :
+                    multi_graph.add_node(current_ip_id, label = req_answer[IP].src, color = device_color, title = str(current_ttl))
+                multi_graph.add_edge(previous_ip_id[ii][i], current_ip_id, color = request_color[i], title = str(backttl))
+                previous_ip_id[ii][i] = current_ip_id
         else:
             print(" *** no response *** ")
-            if not multi_graph.has_node(1000 + current_ttl) :
-                multi_graph.add_node(1000 + current_ttl, label = "***", color = none_color, title = str(current_ttl))
-            multi_graph.add_edge(previous_ip_id[ii][i], 1000 + current_ttl, color = request_color[i], title = "***" + str(current_ttl))
-            previous_ip_id[ii][i] = 1000 + current_ttl
+            if int(ipaddress.IPv4Address(request_ip[i])) != previous_ip_id[ii][i] :
+                if not multi_graph.has_node(1000 + current_ttl) :
+                    multi_graph.add_node(1000 + current_ttl, label = "***", color = none_color, title = str(current_ttl))
+                multi_graph.add_edge(previous_ip_id[ii][i], 1000 + current_ttl, color = request_color[i], title = "***" + str(current_ttl))
+                previous_ip_id[ii][i] = 1000 + current_ttl
         print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
         sleep(sleeptime)
         i += 1
@@ -63,6 +66,10 @@ for current_ttl in range(0,5):
             ii = 1
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+        net_vis = Network(directed=True)
+        net_vis.from_nx(multi_graph)
+        net_vis.set_edge_smooth('dynamic')
+        net_vis.show("nods.html")
     print(" ********************************************************************** ")
     print(" ********************************************************************** ")
     print(" ********************************************************************** ")
