@@ -52,10 +52,11 @@ for current_ttl in range(0,30):
         else:
             print(" *** no response *** ")
             if int(ipaddress.IPv4Address(request_ip[i])) != previous_ip_id[ii][i] :
-                if not multi_graph.has_node(1000 + current_ttl) :
-                    multi_graph.add_node(1000 + current_ttl, label = "***", color = none_color, title = str(current_ttl))
-                multi_graph.add_edge(previous_ip_id[ii][i], 1000 + current_ttl, color = request_color[i], title = "***" + str(current_ttl))
-                previous_ip_id[ii][i] = 1000 + current_ttl
+                no_response_id = int("1000" + str(current_ttl) + str(ii) + str(i))
+                if not multi_graph.has_node(no_response_id) :
+                    multi_graph.add_node(no_response_id, label = "***", color = none_color, title = str(current_ttl))
+                multi_graph.add_edge(previous_ip_id[ii][i], no_response_id, color = request_color[i], title = "***" + str(current_ttl))
+                previous_ip_id[ii][i] = no_response_id
         print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
         sleep(sleeptime)
         i += 1
@@ -66,14 +67,14 @@ for current_ttl in range(0,30):
             ii = 1
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-        net_vis = Network(directed=True)
-        net_vis.from_nx(multi_graph)
-        net_vis.set_edge_smooth('dynamic')
-        net_vis.show("nods.html")
+    net_vis = Network("1500px","1500px",directed=True,bgcolor="#eeeeee")
+    net_vis.from_nx(multi_graph)
+    net_vis.set_edge_smooth('dynamic')
+    net_vis.save_graph("nods.html")
     print(" ********************************************************************** ")
     print(" ********************************************************************** ")
     print(" ********************************************************************** ")
-net_vis = Network(directed=True)
+net_vis = Network("1500px","1500px",directed=True,bgcolor="#eeeeee")
 net_vis.from_nx(multi_graph)
 net_vis.set_edge_smooth('dynamic')
 net_vis.show("nods.html")
