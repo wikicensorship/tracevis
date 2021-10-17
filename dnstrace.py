@@ -18,7 +18,7 @@ request_ip = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
 accessible_addr = "www.google.com"
 blocked_addr = "www.twitter.com"
 request_addr = accessible_addr
-multi_graph = nx.MultiGraph()
+multi_graph = nx.MultiDiGraph()
 multi_graph.add_node(1, label = "this device", color = device_color,title = "start")
 iii = 0
 while iii < 3 :
@@ -37,7 +37,7 @@ while iii < 3 :
             if req_answer is not None:
                 backttl = 0
                 if req_answer[IP].ttl <= 3 :
-                    backttl = int(current_ttl / 2) - req_answer[IP].ttl
+                    backttl = int(current_ttl / 2) #- req_answer[IP].ttl 
                     device_color = middlebox_color
                 elif req_answer[IP].ttl <= 64 :
                     backttl = 64 - req_answer[IP].ttl
