@@ -1,0 +1,108 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+
+<style type="text/css">
+
+        #mynetwork {
+            width: 500px;
+            height: 500px;
+            background-color: #ffffff;
+            border: 1px solid lightgray;
+            position: relative;
+            float: left;
+        }
+
+        
+
+        
+
+        
+</style>
+
+</head>
+
+<body>
+<div id = "mynetwork"></div>
+
+
+<script type="text/javascript">
+
+    // initialize global variables.
+    var edges;
+    var nodes;
+    var network; 
+    var container;
+    var options, data;
+
+    
+    // This method is responsible for drawing the graph, returns the drawn network
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        
+        
+
+        // parsing and collecting nodes and edges from the python
+        nodes = new vis.DataSet([{"color": "Chocolate", "id": 1, "label": "this device", "shape": "dot", "size": 10}, {"color": "purple", "id": 3232268289, "label": "192.168.128.1", "shape": "dot", "size": 10, "title": "0"}, {"color": "green", "id": 2887713025, "label": "172.31.1.1", "shape": "dot", "size": 10, "title": "2"}, {"color": "purple", "id": 1959501834, "label": "116.203.160.10", "shape": "dot", "size": 10, "title": "3"}, {"color": "gray", "id": 1004, "label": "***", "shape": "dot", "size": 10, "title": "4"}, {"color": "green", "id": 1426777661, "label": "85.10.230.61", "shape": "dot", "size": 10, "title": "5"}, {"color": "green", "id": 1426777657, "label": "85.10.230.57", "shape": "dot", "size": 10, "title": "5"}, {"color": "green", "id": 3589263581, "label": "213.239.208.221", "shape": "dot", "size": 10, "title": "6"}, {"color": "green", "id": 1426777173, "label": "85.10.228.85", "shape": "dot", "size": 10, "title": "6"}, {"color": "green", "id": 1426782929, "label": "85.10.250.209", "shape": "dot", "size": 10, "title": "6"}, {"color": "green", "id": 1426782933, "label": "85.10.250.213", "shape": "dot", "size": 10, "title": "6"}, {"color": "green", "id": 3589273077, "label": "213.239.245.245", "shape": "dot", "size": 10, "title": "7"}, {"color": "green", "id": 3589274645, "label": "213.239.252.21", "shape": "dot", "size": 10, "title": "7"}, {"color": "green", "id": 3589273082, "label": "213.239.245.250", "shape": "dot", "size": 10, "title": "7"}, {"color": "green", "id": 3589267694, "label": "213.239.224.238", "shape": "dot", "size": 10, "title": "7"}, {"color": "green", "id": 3589272918, "label": "213.239.245.86", "shape": "dot", "size": 10, "title": "8"}, {"color": "green", "id": 3589274633, "label": "213.239.252.9", "shape": "dot", "size": 10, "title": "8"}, {"color": "green", "id": 3589267634, "label": "213.239.224.178", "shape": "dot", "size": 10, "title": "8"}, {"color": "green", "id": 1540739902, "label": "91.213.211.62", "shape": "dot", "size": 10, "title": "8"}, {"color": "green", "id": 3589267673, "label": "213.239.224.217", "shape": "dot", "size": 10, "title": "8"}, {"color": "purple", "id": 2398792108, "label": "142.250.169.172", "shape": "dot", "size": 10, "title": "9"}, {"color": "green", "id": 2728285438, "label": "162.158.84.254", "shape": "dot", "size": 10, "title": "9"}, {"color": "purple", "id": 151587081, "label": "9.9.9.9", "shape": "dot", "size": 10, "title": "9"}, {"color": "purple", "id": 1823140759, "label": "108.170.235.151", "shape": "dot", "size": 10, "title": "10"}, {"color": "purple", "id": 1823141039, "label": "108.170.236.175", "shape": "dot", "size": 10, "title": "10"}, {"color": "purple", "id": 16777217, "label": "1.0.0.1", "shape": "dot", "size": 10, "title": "10"}, {"color": "purple", "id": 2398806677, "label": "142.250.226.149", "shape": "dot", "size": 10, "title": "11"}, {"color": "purple", "id": 2398803657, "label": "142.250.214.201", "shape": "dot", "size": 10, "title": "11"}, {"color": "blue", "id": 134743044, "label": "8.8.4.4", "shape": "dot", "size": 10, "title": "12"}]);
+        edges = new vis.DataSet([{"arrows": "to", "color": "DarkTurquoise", "from": 1, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 1, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 1, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 1, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "Red", "from": 1, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 1, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 3232268289, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 3232268289, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 3232268289, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 3232268289, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "Red", "from": 3232268289, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 3232268289, "title": "0", "to": 3232268289, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 3232268289, "title": "1", "to": 2887713025, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 3232268289, "title": "1", "to": 2887713025, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 3232268289, "title": "1", "to": 2887713025, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 3232268289, "title": "1", "to": 2887713025, "weight": 1}, {"arrows": "to", "color": "Red", "from": 3232268289, "title": "1", "to": 2887713025, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 3232268289, "title": "1", "to": 2887713025, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 2887713025, "title": "1", "to": 1959501834, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 2887713025, "title": "1", "to": 1959501834, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 2887713025, "title": "1", "to": 1959501834, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 2887713025, "title": "1", "to": 1959501834, "weight": 1}, {"arrows": "to", "color": "Red", "from": 2887713025, "title": "1", "to": 1959501834, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 2887713025, "title": "1", "to": 1959501834, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 1959501834, "title": "***4", "to": 1004, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 1959501834, "title": "***4", "to": 1004, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 1959501834, "title": "***4", "to": 1004, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 1959501834, "title": "***4", "to": 1004, "weight": 1}, {"arrows": "to", "color": "Red", "from": 1959501834, "title": "***4", "to": 1004, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 1959501834, "title": "***4", "to": 1004, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 1004, "title": "3", "to": 1426777661, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 1004, "title": "3", "to": 1426777661, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 1004, "title": "3", "to": 1426777657, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 1004, "title": "3", "to": 1426777657, "weight": 1}, {"arrows": "to", "color": "Red", "from": 1004, "title": "3", "to": 1426777657, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 1004, "title": "3", "to": 1426777657, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 1426777661, "title": "4", "to": 3589263581, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 1426777661, "title": "4", "to": 1426777173, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 1426777657, "title": "4", "to": 1426782929, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 1426777657, "title": "4", "to": 1426782929, "weight": 1}, {"arrows": "to", "color": "Red", "from": 1426777657, "title": "4", "to": 1426782933, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 1426777657, "title": "4", "to": 1426777173, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 3589263581, "title": "5", "to": 3589273077, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 1426777173, "title": "5", "to": 3589274645, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 1426777173, "title": "5", "to": 3589273082, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 1426782929, "title": "5", "to": 3589273082, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 1426782929, "title": "5", "to": 3589273077, "weight": 1}, {"arrows": "to", "color": "Red", "from": 1426782933, "title": "5", "to": 3589267694, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 3589273077, "title": "6", "to": 3589272918, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 3589273077, "title": "6", "to": 3589274633, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 3589274645, "title": "6", "to": 3589267634, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 3589273082, "title": "6", "to": 1540739902, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 3589273082, "title": "6", "to": 1540739902, "weight": 1}, {"arrows": "to", "color": "Red", "from": 3589267694, "title": "6", "to": 3589267673, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 3589272918, "title": "7", "to": 2398792108, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 3589267634, "title": "7", "to": 2728285438, "weight": 1}, {"arrows": "to", "color": "DodgerBlue", "from": 1540739902, "title": "7", "to": 151587081, "weight": 1}, {"arrows": "to", "color": "Gold", "from": 1540739902, "title": "7", "to": 151587081, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 3589274633, "title": "7", "to": 2398792108, "weight": 1}, {"arrows": "to", "color": "Red", "from": 3589267673, "title": "7", "to": 2728285438, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 2398792108, "title": "10", "to": 1823140759, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 2398792108, "title": "10", "to": 1823141039, "weight": 1}, {"arrows": "to", "color": "MediumSpringGreen", "from": 2728285438, "title": "8", "to": 16777217, "weight": 1}, {"arrows": "to", "color": "Red", "from": 2728285438, "title": "8", "to": 16777217, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 1823140759, "title": "11", "to": 2398806677, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 1823141039, "title": "11", "to": 2398803657, "weight": 1}, {"arrows": "to", "color": "DarkTurquoise", "from": 2398806677, "title": "8", "to": 134743044, "weight": 1}, {"arrows": "to", "color": "HotPink", "from": 2398803657, "title": "7", "to": 134743044, "weight": 1}]);
+
+        // adding nodes and edges to the graph
+        data = {nodes: nodes, edges: edges};
+
+        var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+        
+        
+
+        
+
+        network = new vis.Network(container, data, options);
+	 
+        
+
+
+        
+
+        return network;
+
+    }
+
+    drawGraph();
+
+</script>
+</body>
+</html>
