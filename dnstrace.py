@@ -91,16 +91,16 @@ def initialize_first_nodes():
 
 def get_args():
     parser = argparse.ArgumentParser(description='trace DNS censorship')
-    parser.add_argument('--name', action='store',
-                        help="prefix for graph file name")
+    parser.add_argument('--prefix', action='store',
+                        help="prefix for the graph file name")
     args = parser.parse_args()
     return args
 
 
 def main(args):
     graph_name = ""
-    if args.get("name"):
-        graph_name = args["name"] + "-dns-graph-" + \
+    if args.get("prefix"):
+        graph_name = args["prefix"] + "-dns-graph-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
     else:
         graph_name = "dns-graph-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -118,7 +118,10 @@ def main(args):
             while ip_steps < len(REQUEST_IPS):
                 answer_ip, backttl, device_color = send_packet(
                     REQUEST_IPS[ip_steps], current_ttl, request_address)
-                if int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])) != previous_node_ids[access_block_steps][ip_steps]:
+                if previous_node_ids[access_block_steps][ip_steps] not in {
+                        int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])),
+                        int(str(int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])))
+                            + "000" + str(access_block_steps) + str(ip_steps))}:
                     current_node_label = ""
                     current_node_title = ""
                     current_edge_title = ""
@@ -127,7 +130,7 @@ def main(args):
                         current_node_id = int(ipaddress.IPv4Address(answer_ip))
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = int(
-                                str(current_node_id) + str(backttl) + str(access_block_steps) + str(ip_steps))
+                                str(current_node_id) + "000" + str(access_block_steps) + str(ip_steps))
                         current_node_label = answer_ip
                         current_node_title = str(current_ttl)
                         current_edge_title = str(backttl)
