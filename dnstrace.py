@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-from scapy.volatile import RandShort
+import ipaddress
+from time import sleep
+from typing import get_args
+
+import networkx as nx
+from pyvis.network import Network
+from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
 from scapy.sendrecv import sr1
-from scapy.layers.dns import DNS, DNSQR
-from pyvis.network import Network
-import networkx as nx
-from time import sleep
-import ipaddress
-from typing import get_args
+from scapy.volatile import RandShort
 
 SLEEP_TIME = 1
 
@@ -24,15 +25,12 @@ REQUEST_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
 ACCESSIBLE_ADDRESS = "www.google.com"
 BLOCKED_ADDRESS = "www.twitter.com"
 
-CURRENT_REQUEST_COLORS = ACCESSIBLE_REQUEST_COLORS
-REQUEST_ADDRESS = ACCESSIBLE_ADDRESS
-
 MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
 MULTI_DIRECTED_GRAPH.add_node(
     1, label="this device", color="Chocolate", title="start")
 
 
-def Parse_Packet(req_answer, current_ttl):
+def parse_packet(req_answer, current_ttl):
     device_color = ""
     if req_answer is not None:
         backttl = 0
@@ -59,7 +57,7 @@ def Parse_Packet(req_answer, current_ttl):
         return "***", "***", NO_RESPONSE_COLOR
 
 
-def Send_Packet(request_ip, current_ttl, request_address):
+def send_packet(request_ip, current_ttl, request_address):
     dns_request = IP(
         dst=request_ip, id=RandShort(), ttl=current_ttl)/UDP(
         sport=RandShort(), dport=53)/DNS(
@@ -68,7 +66,7 @@ def Send_Packet(request_ip, current_ttl, request_address):
           + "   ip.dst: " + dns_request[IP].dst
           + "   ip.ttl: " + str(current_ttl))
     req_answer = sr1(dns_request, verbose=0, timeout=1)
-    return Parse_Packet(req_answer, current_ttl)
+    return parse_packet(req_answer, current_ttl)
 
 
 def visualize(previous_node_id, current_node_id,
@@ -88,14 +86,14 @@ def main():
         repeat_all_steps += 1
         previous_node_ids = [[1, 1, 1], [1, 1, 1]]
         for current_ttl in range(0, 30):
-            REQUEST_ADDRESS = ACCESSIBLE_ADDRESS
-            CURRENT_REQUEST_COLORS = ACCESSIBLE_REQUEST_COLORS
+            request_address = ACCESSIBLE_ADDRESS
+            current_request_colors = ACCESSIBLE_REQUEST_COLORS
             ip_steps = 0
             access_block_steps = 0
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
             while ip_steps < 3:
-                answer_ip, backttl, device_color = Send_Packet(
-                    REQUEST_IPS[ip_steps], current_ttl, REQUEST_ADDRESS)
+                answer_ip, backttl, device_color = send_packet(
+                    REQUEST_IPS[ip_steps], current_ttl, request_address)
                 if int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])) != previous_node_ids[access_block_steps][ip_steps]:
                     current_node_label = ""
                     current_node_title = ""
@@ -119,14 +117,14 @@ def main():
 
                     visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
                               current_node_label, current_node_title, device_color,
-                              current_edge_title, CURRENT_REQUEST_COLORS[ip_steps])
+                              current_edge_title, current_request_colors[ip_steps])
                     previous_node_ids[access_block_steps][ip_steps] = current_node_id
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
                 sleep(SLEEP_TIME)
                 ip_steps += 1
-                if ip_steps == 3 and REQUEST_ADDRESS == ACCESSIBLE_ADDRESS:
-                    REQUEST_ADDRESS = BLOCKED_ADDRESS
-                    CURRENT_REQUEST_COLORS = BLOCKED_REQUEST_COLORS
+                if ip_steps == 3 and request_address == ACCESSIBLE_ADDRESS:
+                    request_address = BLOCKED_ADDRESS
+                    current_request_colors = BLOCKED_REQUEST_COLORS
                     ip_steps = 0
                     access_block_steps = 1
                     print(
