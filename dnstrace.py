@@ -18,10 +18,11 @@ LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
 ACCESSIBLE_REQUEST_COLORS = [
-    "DarkTurquoise", "MediumSpringGreen", "DodgerBlue"]
-BLOCKED_REQUEST_COLORS = ["HotPink", "Red", "Orange"]
+    "DarkTurquoise", "LimeGreen", "DodgerBlue", "MediumSlateBlue"]
+BLOCKED_REQUEST_COLORS = ["HotPink", "Red", "Orange", "DarkGoldenrod"]
 
-REQUEST_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
+DOMESTIC_DNS_IP = "5.200.200.200"
+REQUEST_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9", DOMESTIC_DNS_IP]
 ACCESSIBLE_ADDRESS = "www.google.com"
 BLOCKED_ADDRESS = "www.twitter.com"
 
@@ -80,18 +81,25 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
+def initialize_first_nodes():
+    nodes = []
+    for _ in REQUEST_IPS:
+        nodes.append(1)
+    return nodes
+
+
 def main():
     repeat_all_steps = 0
     while repeat_all_steps < 3:
         repeat_all_steps += 1
-        previous_node_ids = [[1, 1, 1], [1, 1, 1]]
-        for current_ttl in range(0, 30):
+        previous_node_ids = [initialize_first_nodes(), initialize_first_nodes()]
+        for current_ttl in range(1, 30):
             request_address = ACCESSIBLE_ADDRESS
             current_request_colors = ACCESSIBLE_REQUEST_COLORS
             ip_steps = 0
             access_block_steps = 0
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-            while ip_steps < 3:
+            while ip_steps < len(REQUEST_IPS):
                 answer_ip, backttl, device_color = send_packet(
                     REQUEST_IPS[ip_steps], current_ttl, request_address)
                 if int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])) != previous_node_ids[access_block_steps][ip_steps]:
@@ -122,7 +130,7 @@ def main():
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
                 sleep(SLEEP_TIME)
                 ip_steps += 1
-                if ip_steps == 3 and request_address == ACCESSIBLE_ADDRESS:
+                if ip_steps == len(REQUEST_IPS) and access_block_steps == 0 :
                     request_address = BLOCKED_ADDRESS
                     current_request_colors = BLOCKED_REQUEST_COLORS
                     ip_steps = 0
