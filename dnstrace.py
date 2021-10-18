@@ -35,7 +35,7 @@ def parse_packet(req_answer, current_ttl):
     if req_answer is not None:
         backttl = 0
         if req_answer[IP].ttl <= 20:
-            backttl = int(current_ttl / 2)  # - req_answer[IP].ttl
+            backttl = int((current_ttl - req_answer[IP].ttl) / 2)
             device_color = MIDDLEBOX_COLOR
         elif req_answer[IP].ttl <= 64:
             backttl = 64 - req_answer[IP].ttl
