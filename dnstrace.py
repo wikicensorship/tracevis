@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+import argparse
 import ipaddress
+from datetime import datetime
 from time import sleep
-from typing import get_args
 
 import networkx as nx
 from pyvis.network import Network
@@ -88,11 +89,26 @@ def initialize_first_nodes():
     return nodes
 
 
-def main():
+def get_args():
+    parser = argparse.ArgumentParser(description='trace DNS censorship')
+    parser.add_argument('--name', action='store',
+                        help="prefix for graph file name")
+    args = parser.parse_args()
+    return args
+
+
+def main(args):
+    graph_name = ""
+    if args.get("name"):
+        graph_name = args["name"] + "-dns-graph-" + \
+            datetime.utcnow().strftime("%Y%m%d-%H%M")
+    else:
+        graph_name = "dns-graph-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
     repeat_all_steps = 0
     while repeat_all_steps < 3:
         repeat_all_steps += 1
-        previous_node_ids = [initialize_first_nodes(), initialize_first_nodes()]
+        previous_node_ids = [
+            initialize_first_nodes(), initialize_first_nodes()]
         for current_ttl in range(1, 30):
             request_address = ACCESSIBLE_ADDRESS
             current_request_colors = ACCESSIBLE_REQUEST_COLORS
@@ -130,7 +146,7 @@ def main():
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
                 sleep(SLEEP_TIME)
                 ip_steps += 1
-                if ip_steps == len(REQUEST_IPS) and access_block_steps == 0 :
+                if ip_steps == len(REQUEST_IPS) and access_block_steps == 0:
                     request_address = BLOCKED_ADDRESS
                     current_request_colors = BLOCKED_REQUEST_COLORS
                     ip_steps = 0
@@ -143,7 +159,7 @@ def main():
                               directed=True, bgcolor="#eeeeee")
             net_vis.from_nx(MULTI_DIRECTED_GRAPH)
             net_vis.set_edge_smooth('dynamic')
-            net_vis.save_graph("nods.html")
+            net_vis.save_graph(graph_name + ".html")
             print(
                 " ********************************************************************** ")
             print(
@@ -153,8 +169,8 @@ def main():
     net_vis = Network("1500px", "1500px", directed=True, bgcolor="#eeeeee")
     net_vis.from_nx(MULTI_DIRECTED_GRAPH)
     net_vis.set_edge_smooth('dynamic')
-    net_vis.show("nods.html")
+    net_vis.show(graph_name + ".html")
 
 
 if __name__ == "__main__":
-    main()
+    main(vars(get_args()))
