@@ -1,92 +1,154 @@
 #!/usr/bin/env python3
-from scapy.all import *
+from scapy.volatile import RandShort
+from scapy.layers.inet import IP, UDP
+from scapy.sendrecv import sr1
+from scapy.layers.dns import DNS, DNSQR
 from pyvis.network import Network
 import networkx as nx
 from time import sleep
 import ipaddress
-sleeptime = 1
-device_color = "Chocolate"
-router_color = "green"
-windows_color = "blue"
-linux_color = "purple"
-middlebox_color = "red"
-request_access_color = ["DarkTurquoise", "MediumSpringGreen", "DodgerBlue"]
-request_block_color = ["HotPink", "Red", "Orange"]
-request_color = request_access_color
-none_color = "gray"
-request_ip = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
-accessible_addr = "www.google.com"
-blocked_addr = "www.twitter.com"
-request_addr = accessible_addr
-multi_graph = nx.MultiDiGraph()
-multi_graph.add_node(1, label = "this device", color = device_color,title = "start")
-iii = 0
-while iii < 3 :
-    iii += 1
-    previous_ip_id = [[1,1,1],[1,1,1]]
-    for current_ttl in range(0,30):
-        request_addr = accessible_addr
-        request_color = request_access_color
-        i = 0
-        ii = 0
-        print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-        while i < 3:
-            dns_request = IP(dst=request_ip[i], id=RandShort(), ttl=current_ttl)/UDP(sport=RandShort(), dport=53)/DNS(rd=1, id=RandShort(), qd=DNSQR(qname=request_addr))
-            print(">>>request:" + "   ip.dst: " + dns_request[IP].dst + "   ip.ttl: " + str(current_ttl))
-            req_answer = sr1(dns_request, verbose=0, timeout=3)
-            if req_answer is not None:
-                backttl = 0
-                if req_answer[IP].ttl <= 3 :
-                    backttl = int(current_ttl / 2) #- req_answer[IP].ttl 
-                    device_color = middlebox_color
-                elif req_answer[IP].ttl <= 64 :
-                    backttl = 64 - req_answer[IP].ttl
-                    device_color = linux_color
-                elif req_answer[IP].ttl <= 128 :
-                    backttl = 128 - req_answer[IP].ttl
-                    device_color = windows_color
-                else :
-                    backttl = 255 - req_answer[IP].ttl
-                    device_color = router_color
-                print("   <<< answer:" + "   ip.src: " + req_answer[IP].src + "   ip.ttl: " + str(req_answer[IP].ttl) + "   back-ttl: " + str(backttl))
-                print("      " + req_answer.summary())
-                if int(ipaddress.IPv4Address(request_ip[i])) != previous_ip_id[ii][i] :
-                    current_ip_id = int(ipaddress.IPv4Address(req_answer[IP].src))
-                    if device_color == middlebox_color :
-                        middlebox_id = int(str(current_ip_id) + str(backttl) + str(ii) + str(i))
-                        multi_graph.add_node(middlebox_id, label = req_answer[IP].src, color = device_color, title = str(current_ttl))
-                        multi_graph.add_edge(previous_ip_id[ii][i], middlebox_id, color = request_color[i], title = str(backttl))
-                    else :
-                        if not multi_graph.has_node(current_ip_id) :
-                            multi_graph.add_node(current_ip_id, label = req_answer[IP].src, color = device_color, title = str(current_ttl))
-                        multi_graph.add_edge(previous_ip_id[ii][i], current_ip_id, color = request_color[i], title = str(backttl))
-                    previous_ip_id[ii][i] = current_ip_id
-            else:
-                print(" *** no response *** ")
-                if int(ipaddress.IPv4Address(request_ip[i])) != previous_ip_id[ii][i] :
-                    no_response_id = int("1000" + str(current_ttl) + str(ii) + str(i))
-                    if not multi_graph.has_node(no_response_id) :
-                        multi_graph.add_node(no_response_id, label = "***", color = none_color, title = str(current_ttl))
-                    multi_graph.add_edge(previous_ip_id[ii][i], no_response_id, color = request_color[i], title = "***" + str(current_ttl))
-                    previous_ip_id[ii][i] = no_response_id
+from typing import get_args
+
+SLEEP_TIME = 1
+
+ROUTER_COLOR = "green"
+WINDOWS_COLOR = "blue"
+LINUX_COLOR = "purple"
+MIDDLEBOX_COLOR = "red"
+NO_RESPONSE_COLOR = "gray"
+ACCESSIBLE_REQUEST_COLORS = [
+    "DarkTurquoise", "MediumSpringGreen", "DodgerBlue"]
+BLOCKED_REQUEST_COLORS = ["HotPink", "Red", "Orange"]
+
+REQUEST_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
+ACCESSIBLE_ADDRESS = "www.google.com"
+BLOCKED_ADDRESS = "www.twitter.com"
+
+CURRENT_REQUEST_COLORS = ACCESSIBLE_REQUEST_COLORS
+REQUEST_ADDRESS = ACCESSIBLE_ADDRESS
+
+MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
+MULTI_DIRECTED_GRAPH.add_node(
+    1, label="this device", color="Chocolate", title="start")
+
+
+def Parse_Packet(req_answer, current_ttl):
+    device_color = ""
+    if req_answer is not None:
+        backttl = 0
+        if req_answer[IP].ttl <= 20:
+            backttl = int(current_ttl / 2)  # - req_answer[IP].ttl
+            device_color = MIDDLEBOX_COLOR
+        elif req_answer[IP].ttl <= 64:
+            backttl = 64 - req_answer[IP].ttl
+            device_color = LINUX_COLOR
+        elif req_answer[IP].ttl <= 128:
+            backttl = 128 - req_answer[IP].ttl
+            device_color = WINDOWS_COLOR
+        else:
+            backttl = 255 - req_answer[IP].ttl
+            device_color = ROUTER_COLOR
+        print("   <<< answer:"
+              + "   ip.src: " + req_answer[IP].src
+              + "   ip.ttl: " + str(req_answer[IP].ttl)
+              + "   back-ttl: " + str(backttl))
+        print("      " + req_answer.summary())
+        return req_answer[IP].src, backttl, device_color
+    else:
+        print(" *** no response *** ")
+        return "***", "***", NO_RESPONSE_COLOR
+
+
+def Send_Packet(request_ip, current_ttl, request_address):
+    dns_request = IP(
+        dst=request_ip, id=RandShort(), ttl=current_ttl)/UDP(
+        sport=RandShort(), dport=53)/DNS(
+            rd=1, id=RandShort(), qd=DNSQR(qname=request_address))
+    print(">>>request:"
+          + "   ip.dst: " + dns_request[IP].dst
+          + "   ip.ttl: " + str(current_ttl))
+    req_answer = sr1(dns_request, verbose=0, timeout=1)
+    return Parse_Packet(req_answer, current_ttl)
+
+
+def visualize(previous_node_id, current_node_id,
+              current_node_label, current_node_title, device_color,
+              current_edge_title, requset_color):
+    if not MULTI_DIRECTED_GRAPH.has_node(current_node_id):
+        MULTI_DIRECTED_GRAPH.add_node(current_node_id,
+                                      label=current_node_label, color=device_color,
+                                      title=current_node_title)
+    MULTI_DIRECTED_GRAPH.add_edge(previous_node_id, current_node_id,
+                                  color=requset_color, title=current_edge_title)
+
+
+def main():
+    repeat_all_steps = 0
+    while repeat_all_steps < 3:
+        repeat_all_steps += 1
+        previous_node_ids = [[1, 1, 1], [1, 1, 1]]
+        for current_ttl in range(0, 30):
+            REQUEST_ADDRESS = ACCESSIBLE_ADDRESS
+            CURRENT_REQUEST_COLORS = ACCESSIBLE_REQUEST_COLORS
+            ip_steps = 0
+            access_block_steps = 0
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-            sleep(sleeptime)
-            i += 1
-            if i == 3 and request_addr == accessible_addr :
-                request_addr = blocked_addr
-                request_color = request_block_color
-                i = 0
-                ii = 1
+            while ip_steps < 3:
+                answer_ip, backttl, device_color = Send_Packet(
+                    REQUEST_IPS[ip_steps], current_ttl, REQUEST_ADDRESS)
+                if int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])) != previous_node_ids[access_block_steps][ip_steps]:
+                    current_node_label = ""
+                    current_node_title = ""
+                    current_edge_title = ""
+                    current_node_id = 0
+                    if answer_ip != "***":
+                        current_node_id = int(ipaddress.IPv4Address(answer_ip))
+                        if device_color == MIDDLEBOX_COLOR:
+                            current_node_id = int(
+                                str(current_node_id) + str(backttl) + str(access_block_steps) + str(ip_steps))
+                        current_node_label = answer_ip
+                        current_node_title = str(current_ttl)
+                        current_edge_title = str(backttl)
+
+                    else:
+                        current_node_id = int(
+                            "1000" + str(current_ttl) + str(access_block_steps) + str(ip_steps))
+                        current_node_label = "***"
+                        current_node_title = str(current_ttl)
+                        current_edge_title = "***" + str(current_ttl)
+
+                    visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
+                              current_node_label, current_node_title, device_color,
+                              current_edge_title, CURRENT_REQUEST_COLORS[ip_steps])
+                    previous_node_ids[access_block_steps][ip_steps] = current_node_id
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-                print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-        net_vis = Network("1500px","1500px",directed=True,bgcolor="#eeeeee")
-        net_vis.from_nx(multi_graph)
-        net_vis.set_edge_smooth('dynamic')
-        net_vis.save_graph("nods.html")
-        print(" ********************************************************************** ")
-        print(" ********************************************************************** ")
-        print(" ********************************************************************** ")
-net_vis = Network("1500px","1500px",directed=True,bgcolor="#eeeeee")
-net_vis.from_nx(multi_graph)
-net_vis.set_edge_smooth('dynamic')
-net_vis.show("nods.html")
+                sleep(SLEEP_TIME)
+                ip_steps += 1
+                if ip_steps == 3 and REQUEST_ADDRESS == ACCESSIBLE_ADDRESS:
+                    REQUEST_ADDRESS = BLOCKED_ADDRESS
+                    CURRENT_REQUEST_COLORS = BLOCKED_REQUEST_COLORS
+                    ip_steps = 0
+                    access_block_steps = 1
+                    print(
+                        " · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+                    print(
+                        " · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+            net_vis = Network("1500px", "1500px",
+                              directed=True, bgcolor="#eeeeee")
+            net_vis.from_nx(MULTI_DIRECTED_GRAPH)
+            net_vis.set_edge_smooth('dynamic')
+            net_vis.save_graph("nods.html")
+            print(
+                " ********************************************************************** ")
+            print(
+                " ********************************************************************** ")
+            print(
+                " ********************************************************************** ")
+    net_vis = Network("1500px", "1500px", directed=True, bgcolor="#eeeeee")
+    net_vis.from_nx(MULTI_DIRECTED_GRAPH)
+    net_vis.set_edge_smooth('dynamic')
+    net_vis.show("nods.html")
+
+
+if __name__ == "__main__":
+    main()
