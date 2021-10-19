@@ -16,9 +16,12 @@ Run:
 python3 ./dnstrace.py
 ```
 
-Sample:
+Example:
 
-![cli](https://user-images.githubusercontent.com/12384263/137605764-edbd2536-c3f1-47ff-83ee-6dbc559b2437.png)
+![example cli](https://user-images.githubusercontent.com/12384263/137825581-e2bd4bdb-874f-4fad-9a54-6c39beab0398.png)
 
-![image](https://user-images.githubusercontent.com/12384263/137605837-c8077a0c-ad73-4a4e-bf80-1cacd14a9eee.png)
+![example cli](https://user-images.githubusercontent.com/12384263/137825216-e76ddeaa-0592-422b-a08b-bd44329a6934.png)
+
+![example graph](https://user-images.githubusercontent.com/12384263/137825263-b5bc658e-a5af-47e3-9839-d1c75fa6be1b.png)
+
 
