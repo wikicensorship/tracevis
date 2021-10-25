@@ -18,11 +18,10 @@ WINDOWS_COLOR = "blue"
 LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
-REQUEST_COLORS = [
-    "DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange", "MediumSlateBlue", "DarkGoldenrod"]
+REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red",
+                  "DodgerBlue", "Orange", "MediumSlateBlue", "DarkGoldenrod"]
 
-REQUEST_IPS = ["194.225.150.25", "37.156.28.13", "194.225.50.25",
-               "77.104.70.70", "194.146.239.1", "20.101.57.9", "128.138.141.172"]
+#REQUEST_IPS = []
 
 MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
 MULTI_DIRECTED_GRAPH.add_node(
@@ -62,10 +61,10 @@ def send_packet(this_packet, request_ip, current_ttl):
     this_request[IP].ttl = current_ttl
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
-        #this_request[TCP].sport = RandShort()
+        this_request[TCP].sport = RandShort()
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
-        #this_request[UDP].sport = RandShort()
+        this_request[UDP].sport = RandShort()
         del(this_request[UDP].chksum)
     del(this_request[IP].len)
     del(this_request[IP].chksum)
@@ -87,9 +86,9 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
-def initialize_first_nodes():
+def initialize_first_nodes(request_ips):
     nodes = []
-    for _ in REQUEST_IPS:
+    for _ in request_ips:
         nodes.append(1)
     return nodes
 
@@ -98,6 +97,8 @@ def get_args():
     parser = argparse.ArgumentParser(description='trace DNS censorship')
     parser.add_argument('--prefix', action='store',
                         help="prefix for the graph file name")
+    parser.add_argument('--ips', type=str, required=True,
+                        help="add comma-separated IPs")
     args = parser.parse_args()
     return args
 
@@ -110,6 +111,7 @@ def main(args):
     else:
         graph_name = "packet-trace-graph-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
 
+    request_ips = args["ips"].split(',')
     print(
         " ********************************************************************** ")
     print(
@@ -120,20 +122,18 @@ def main(args):
     repeat_all_steps = 0
     while repeat_all_steps < 3:
         repeat_all_steps += 1
-        previous_node_ids = [
-            initialize_first_nodes(), initialize_first_nodes()]
+        previous_node_ids = initialize_first_nodes(request_ips)
         for current_ttl in range(1, 30):
             current_request_colors = REQUEST_COLORS
             ip_steps = 0
-            access_block_steps = 0
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-            while ip_steps < len(REQUEST_IPS):
+            while ip_steps < len(request_ips):
                 answer_ip, backttl, device_color = send_packet(
-                    copy_packet, REQUEST_IPS[ip_steps], current_ttl)
-                if previous_node_ids[access_block_steps][ip_steps] not in {
-                        int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])),
-                        int(str(int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])))
-                            + "000" + str(access_block_steps) + str(ip_steps))}:
+                    copy_packet, request_ips[ip_steps], current_ttl)
+                if previous_node_ids[ip_steps] not in {
+                        int(ipaddress.IPv4Address(request_ips[ip_steps])),
+                        int(str(int(ipaddress.IPv4Address(request_ips[ip_steps])))
+                            + "000" + str(ip_steps))}:
                     current_node_label = ""
                     current_node_title = ""
                     current_edge_title = ""
@@ -142,22 +142,22 @@ def main(args):
                         current_node_id = int(ipaddress.IPv4Address(answer_ip))
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = int(
-                                str(current_node_id) + "000" + str(access_block_steps) + str(ip_steps))
+                                str(current_node_id) + "000" + str(ip_steps))
                         current_node_label = answer_ip
                         current_node_title = str(current_ttl)
                         current_edge_title = str(backttl)
 
                     else:
                         current_node_id = int(
-                            "1000" + str(current_ttl) + str(access_block_steps) + str(ip_steps))
+                            "1000" + str(current_ttl) + str(ip_steps))
                         current_node_label = "***"
                         current_node_title = str(current_ttl)
                         current_edge_title = "***" + str(current_ttl)
 
-                    visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
+                    visualize(previous_node_ids[ip_steps], current_node_id,
                               current_node_label, current_node_title, device_color,
                               current_edge_title, current_request_colors[ip_steps])
-                    previous_node_ids[access_block_steps][ip_steps] = current_node_id
+                    previous_node_ids[ip_steps] = current_node_id
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
                 sleep(SLEEP_TIME)
                 ip_steps += 1
