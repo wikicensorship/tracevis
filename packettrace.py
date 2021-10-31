@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
+from __future__ import absolute_import, unicode_literals
+
 import argparse
+import contextlib
 import ipaddress
 from datetime import datetime
+from socket import SO_REUSEADDR, SOL_SOCKET
+from socket import socket
 from time import sleep
 
 import networkx as nx
@@ -11,6 +16,8 @@ from scapy.sendrecv import sr1
 from scapy.utils import import_hexcap
 from scapy.volatile import RandShort
 
+LOCALHOST = '127.0.0.1'
+
 SLEEP_TIME = 1
 
 ROUTER_COLOR = "green"
@@ -18,8 +25,8 @@ WINDOWS_COLOR = "blue"
 LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
-REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red",
-                  "DodgerBlue", "Orange", "MediumSlateBlue", "DarkGoldenrod"]
+REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
+                  "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
 
 #REQUEST_IPS = []
 
@@ -54,6 +61,22 @@ def parse_packet(req_answer, current_ttl):
         print(" *** no response *** ")
         return "***", "***", NO_RESPONSE_COLOR
 
+# ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
+
+
+def ephemeral_port_reserve():
+    with contextlib.closing(socket()) as s:
+        s.bind((LOCALHOST, 0))
+        # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
+        s.listen(1)
+        sockname = s.getsockname()
+        # these three are necessary just to get the port into a TIME_WAIT state
+        with contextlib.closing(socket()) as s2:
+            s2.connect(sockname)
+            sock, _ = s.accept()
+            with contextlib.closing(sock):
+                return sockname[1]
+
 
 def send_packet(this_packet, request_ip, current_ttl):
     this_request = this_packet
@@ -61,7 +84,7 @@ def send_packet(this_packet, request_ip, current_ttl):
     this_request[IP].ttl = current_ttl
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
-        this_request[TCP].sport = RandShort()
+        this_request[TCP].sport = ephemeral_port_reserve()
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = RandShort()
@@ -98,7 +121,7 @@ def get_args():
     parser.add_argument('--prefix', action='store',
                         help="prefix for the graph file name")
     parser.add_argument('--ips', type=str, required=True,
-                        help="add comma-separated IPs")
+                        help="add comma-separated IPs (up to 8)")
     args = parser.parse_args()
     return args
 
