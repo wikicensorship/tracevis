@@ -40,16 +40,16 @@ def parse_packet(req_answer, current_ttl):
     if req_answer is not None:
         backttl = 0
         if req_answer[IP].ttl <= 20:
-            backttl = int((current_ttl - req_answer[IP].ttl) / 2)
+            backttl = int((current_ttl - req_answer[IP].ttl) / 2) + 1
             device_color = MIDDLEBOX_COLOR
         elif req_answer[IP].ttl <= 64:
-            backttl = 64 - req_answer[IP].ttl
+            backttl = 64 - req_answer[IP].ttl + 1
             device_color = LINUX_COLOR
         elif req_answer[IP].ttl <= 128:
-            backttl = 128 - req_answer[IP].ttl
+            backttl = 128 - req_answer[IP].ttl + 1
             device_color = WINDOWS_COLOR
         else:
-            backttl = 255 - req_answer[IP].ttl
+            backttl = 255 - req_answer[IP].ttl + 1
             device_color = ROUTER_COLOR
         print("   <<< answer:"
               + "   ip.src: " + req_answer[IP].src
