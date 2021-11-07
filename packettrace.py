@@ -117,7 +117,7 @@ def initialize_first_nodes(request_ips):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='trace DNS censorship')
+    parser = argparse.ArgumentParser(description='trace route of a packet')
     parser.add_argument('--prefix', action='store',
                         help="prefix for the graph file name")
     parser.add_argument('--ips', type=str, required=True,
