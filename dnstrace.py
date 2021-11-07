@@ -30,10 +30,9 @@ ACCESSIBLE_REQUEST_COLORS = ["DarkTurquoise", "LimeGreen", "DodgerBlue",
 BLOCKED_REQUEST_COLORS = ["HotPink", "Red",
                           "Orange", "DarkGoldenrod", "Brown", "Magenta"]
 
-REQUEST_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9", "5.200.200.200",
-               "217.218.127.127", "185.128.139.139"]
-ACCESSIBLE_ADDRESS = "www.google.com"
-BLOCKED_ADDRESS = "www.twitter.com"
+DEFAULT_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
+ACCESSIBLE_ADDRESS = "www.example.com"
+DEFAULT_BLOCKED_ADDRESS = "www.twitter.com"
 
 MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
 MULTI_DIRECTED_GRAPH.add_node(
@@ -106,9 +105,9 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
-def initialize_first_nodes():
+def initialize_first_nodes(request_ips):
     nodes = []
-    for _ in REQUEST_IPS:
+    for _ in request_ips:
         nodes.append(1)
     return nodes
 
@@ -117,34 +116,44 @@ def get_args():
     parser = argparse.ArgumentParser(description='trace DNS censorship')
     parser.add_argument('--prefix', action='store',
                         help="prefix for the graph file name")
+    parser.add_argument('--ips', type=str,
+                        help="add comma-separated IPs (up to 6)")
+    parser.add_argument('--domain', type=str,
+                        help="change the default blocked domain name")
     args = parser.parse_args()
     return args
 
 
 def main(args):
     graph_name = ""
+    request_ips = DEFAULT_IPS
+    blocked_address = DEFAULT_BLOCKED_ADDRESS
     if args.get("prefix"):
         graph_name = args["prefix"] + "-dns-graph-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
     else:
         graph_name = "dns-graph-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
+    if args.get("ips"):
+        request_ips = args["ips"].split(',')
+    if args.get("domain"):
+        blocked_address = args["domain"]
     repeat_all_steps = 0
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = [
-            initialize_first_nodes(), initialize_first_nodes()]
+            initialize_first_nodes(request_ips), initialize_first_nodes(request_ips)]
         for current_ttl in range(1, 30):
             request_address = ACCESSIBLE_ADDRESS
             current_request_colors = ACCESSIBLE_REQUEST_COLORS
             ip_steps = 0
             access_block_steps = 0
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-            while ip_steps < len(REQUEST_IPS):
+            while ip_steps < len(request_ips):
                 answer_ip, backttl, device_color = send_packet(
-                    REQUEST_IPS[ip_steps], current_ttl, request_address)
+                    request_ips[ip_steps], current_ttl, request_address)
                 if previous_node_ids[access_block_steps][ip_steps] not in {
-                        int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])),
-                        int(str(int(ipaddress.IPv4Address(REQUEST_IPS[ip_steps])))
+                        int(ipaddress.IPv4Address(request_ips[ip_steps])),
+                        int(str(int(ipaddress.IPv4Address(request_ips[ip_steps])))
                             + "000" + str(access_block_steps) + str(ip_steps))}:
                     current_node_label = ""
                     current_node_title = ""
@@ -173,8 +182,8 @@ def main(args):
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
                 sleep(SLEEP_TIME)
                 ip_steps += 1
-                if ip_steps == len(REQUEST_IPS) and access_block_steps == 0:
-                    request_address = BLOCKED_ADDRESS
+                if ip_steps == len(request_ips) and access_block_steps == 0:
+                    request_address = blocked_address
                     current_request_colors = BLOCKED_REQUEST_COLORS
                     ip_steps = 0
                     access_block_steps = 1
