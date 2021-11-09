@@ -156,27 +156,25 @@ def main(args):
                         int(str(int(ipaddress.IPv4Address(request_ips[ip_steps])))
                             + "000" + str(access_block_steps) + str(ip_steps))}:
                     current_node_label = ""
-                    current_node_title = ""
                     current_edge_title = ""
                     current_node_id = 0
+                    current_ttl_str = str(current_ttl)
                     if answer_ip != "***":
                         current_node_id = int(ipaddress.IPv4Address(answer_ip))
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = int(
                                 str(current_node_id) + "000" + str(access_block_steps) + str(ip_steps))
                         current_node_label = answer_ip
-                        current_node_title = str(current_ttl)
                         current_edge_title = str(backttl)
-
                     else:
                         current_node_id = int(
-                            "1000" + str(current_ttl) + str(access_block_steps) + str(ip_steps))
+                            "1000" + current_ttl_str + str(access_block_steps) + str(ip_steps))
                         current_node_label = "***"
-                        current_node_title = str(current_ttl)
-                        current_edge_title = "***" + str(current_ttl)
-
+                        current_edge_title = "***"
+                    current_edge_title = "TTL: " + current_ttl_str + \
+                        " - " + "BackTTL: " + current_edge_title
                     visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
-                              current_node_label, current_node_title, device_color,
+                              current_node_label, current_ttl_str, device_color,
                               current_edge_title, current_request_colors[ip_steps])
                     previous_node_ids[access_block_steps][ip_steps] = current_node_id
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
