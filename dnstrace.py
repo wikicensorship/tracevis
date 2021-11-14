@@ -105,6 +105,32 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
+def already_reached_destination(previous_node_id, current_node_ip, access_block_steps, ip_steps):
+    if previous_node_id in {int(ipaddress.IPv4Address(current_node_ip)),
+                            int(str(int(ipaddress.IPv4Address(current_node_ip)))
+                            + "0000" + str(access_block_steps) + str(ip_steps))}:
+        return True
+    else:
+        return False
+
+
+def are_equal(original_list, result_list):
+    counter = 0
+    for item in original_list:
+        original_item = str(int(ipaddress.IPv4Address(item)))
+        original_item_middlebox = original_item + "0000"
+        reault_item_1 = str(result_list[0][counter])
+        reault_item_2 = str(result_list[1][counter])
+        if reault_item_1 != original_item and not reault_item_1.startswith(
+                original_item_middlebox):
+            return False
+        if reault_item_2 != original_item and not reault_item_2.startswith(
+                original_item_middlebox):
+            return False
+        counter += 1
+    return True
+
+
 def initialize_first_nodes(request_ips):
     nodes = []
     for _ in request_ips:
@@ -114,12 +140,14 @@ def initialize_first_nodes(request_ips):
 
 def get_args():
     parser = argparse.ArgumentParser(description='trace DNS censorship')
-    parser.add_argument('--prefix', action='store',
+    parser.add_argument('-p', '--prefix', action='store',
                         help="prefix for the graph file name")
-    parser.add_argument('--ips', type=str,
+    parser.add_argument('-i', '--ips', type=str,
                         help="add comma-separated IPs (up to 6)")
-    parser.add_argument('--domain', type=str,
+    parser.add_argument('-d', '--domain', type=str,
                         help="change the default blocked domain name")
+    parser.add_argument('-g', '--graph', action='store_true',
+                        help="no further TTL advance after reaching the endpoint")
     args = parser.parse_args()
     return args
 
@@ -128,6 +156,8 @@ def main(args):
     graph_name = ""
     request_ips = DEFAULT_IPS
     blocked_address = DEFAULT_BLOCKED_ADDRESS
+    just_graph = False
+    request_ips = []
     if args.get("prefix"):
         graph_name = args["prefix"] + "-dns-graph-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -137,24 +167,36 @@ def main(args):
         request_ips = args["ips"].split(',')
     if args.get("domain"):
         blocked_address = args["domain"]
+    if args.get("graph"):
+        just_graph = True
     repeat_all_steps = 0
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = [
             initialize_first_nodes(request_ips), initialize_first_nodes(request_ips)]
         for current_ttl in range(1, 30):
+            if just_graph and are_equal(request_ips, previous_node_ids):
+                break
             request_address = ACCESSIBLE_ADDRESS
             current_request_colors = ACCESSIBLE_REQUEST_COLORS
             ip_steps = 0
             access_block_steps = 0
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
             while ip_steps < len(request_ips):
-                answer_ip, backttl, device_color = send_packet(
-                    request_ips[ip_steps], current_ttl, request_address)
-                if previous_node_ids[access_block_steps][ip_steps] not in {
-                        int(ipaddress.IPv4Address(request_ips[ip_steps])),
-                        int(str(int(ipaddress.IPv4Address(request_ips[ip_steps])))
-                            + "000" + str(access_block_steps) + str(ip_steps))}:
+                sleep_time = SLEEP_TIME
+                not_yet_destination = not (already_reached_destination(
+                    previous_node_ids[access_block_steps][ip_steps],
+                    request_ips[ip_steps], access_block_steps, ip_steps))
+                if just_graph:
+                    if not_yet_destination:
+                        answer_ip, backttl, device_color = send_packet(
+                            request_ips[ip_steps], current_ttl, request_address)
+                    else:
+                        sleep_time = 0
+                else:
+                    answer_ip, backttl, device_color = send_packet(
+                        request_ips[ip_steps], current_ttl, request_address)
+                if not_yet_destination:
                     current_node_label = ""
                     current_edge_title = ""
                     current_node_id = 0
@@ -163,14 +205,15 @@ def main(args):
                         current_node_id = int(ipaddress.IPv4Address(answer_ip))
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = int(
-                                str(current_node_id) + "000" + str(access_block_steps) + str(ip_steps))
+                                str(current_node_id) + "0000" + str(access_block_steps) + str(ip_steps))
                         current_node_label = answer_ip
                         current_edge_title = str(backttl)
                     else:
                         current_node_id = int(
-                            "1000" + current_ttl_str + str(access_block_steps) + str(ip_steps))
+                            "1111" + current_ttl_str + str(access_block_steps) + str(ip_steps))
                         current_node_label = "***"
                         current_edge_title = "***"
+                        sleep_time = 0
                     current_edge_title = "TTL: " + current_ttl_str + \
                         " - " + "BackTTL: " + current_edge_title
                     visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
@@ -178,7 +221,7 @@ def main(args):
                               current_edge_title, current_request_colors[ip_steps])
                     previous_node_ids[access_block_steps][ip_steps] = current_node_id
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-                sleep(SLEEP_TIME)
+                sleep(sleep_time)
                 ip_steps += 1
                 if ip_steps == len(request_ips) and access_block_steps == 0:
                     request_address = blocked_address
