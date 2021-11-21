@@ -19,12 +19,14 @@ from scapy.volatile import RandShort
 LOCALHOST = '127.0.0.1'
 
 SLEEP_TIME = 1
-
+TIMEOUT = 1
 ROUTER_COLOR = "green"
 WINDOWS_COLOR = "blue"
 LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
+DEVICE_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
+               LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
 REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
                   "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
 
@@ -94,7 +96,7 @@ def send_packet(this_packet, request_ip, current_ttl):
     print(">>>request:"
           + "   ip.dst: " + this_request[IP].dst
           + "   ip.ttl: " + str(current_ttl))
-    req_answer = sr1(this_request, verbose=0, timeout=1)
+    req_answer = sr1(this_request, verbose=0, timeout=TIMEOUT)
     return parse_packet(req_answer, current_ttl)
 
 
@@ -110,8 +112,8 @@ def visualize(previous_node_id, current_node_id,
 
 
 def already_reached_destination(previous_node_id, current_node_ip, ip_steps):
-    if previous_node_id in {int(ipaddress.IPv4Address(current_node_ip)),
-                            int(str(int(ipaddress.IPv4Address(current_node_ip)))
+    if previous_node_id in {str(int(ipaddress.IPv4Address(current_node_ip))),
+                            (str(int(ipaddress.IPv4Address(current_node_ip)))
                                 + "0000" + str(ip_steps))}:
         return True
     else:
@@ -196,25 +198,26 @@ def main(args):
                 if not_yet_destination:
                     current_node_label = ""
                     current_edge_title = ""
-                    current_node_id = 0
+                    current_node_id = "0"
                     current_ttl_str = str(current_ttl)
                     if answer_ip != "***":
-                        current_node_id = int(ipaddress.IPv4Address(answer_ip))
+                        current_node_id = str(
+                            int(ipaddress.IPv4Address(answer_ip)))
                         if device_color == MIDDLEBOX_COLOR:
-                            current_node_id = int(
+                            current_node_id = (
                                 str(current_node_id) + "0000" + str(ip_steps))
                         current_node_label = answer_ip
                         current_edge_title = str(backttl)
                     else:
-                        current_node_id = int(
-                            "1111" + current_ttl_str + str(ip_steps))
+                        current_node_id = (
+                            str(previous_node_ids[ip_steps]) + "1111" + current_ttl_str)
                         current_node_label = "***"
                         current_edge_title = "***"
                         sleep_time = 0
                     current_edge_title = "TTL: " + current_ttl_str + \
                         " - " + "BackTTL: " + current_edge_title
                     visualize(previous_node_ids[ip_steps], current_node_id,
-                              current_node_label, current_ttl_str, device_color,
+                              current_node_label, DEVICE_NAME[device_color], device_color,
                               current_edge_title, current_request_colors[ip_steps])
                     previous_node_ids[ip_steps] = current_node_id
                 print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
@@ -226,10 +229,6 @@ def main(args):
             net_vis.from_nx(MULTI_DIRECTED_GRAPH)
             net_vis.set_edge_smooth('dynamic')
             net_vis.save_graph(graph_name + ".html")
-            print(
-                " ********************************************************************** ")
-            print(
-                " ********************************************************************** ")
             print(
                 " ********************************************************************** ")
     net_vis = Network("1500px", "1500px", directed=True, bgcolor="#eeeeee")
