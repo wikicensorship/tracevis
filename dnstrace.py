@@ -5,7 +5,6 @@ import argparse
 import contextlib
 import ipaddress
 from datetime import datetime
-from socket import SO_REUSEADDR, SOL_SOCKET
 from socket import socket
 from time import sleep
 
@@ -105,6 +104,13 @@ def visualize(previous_node_id, current_node_id,
                                       title=current_node_title)
     MULTI_DIRECTED_GRAPH.add_edge(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
+
+
+def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip, request_hostname):
+    return ("<pre style=\"color:" + current_request_colors + "\">TTL: " + \
+            current_ttl_str + "<br/>Back-TTL: " + backttl + \
+            "<br/>Request to:" + request_ip + \
+            "<br/>Request for:" + request_hostname + "</pre>")
 
 
 def already_reached_destination(previous_node_id, current_node_ip, access_block_steps, ip_steps):
@@ -217,8 +223,9 @@ def main(args):
                         current_node_label = "***"
                         current_edge_title = "***"
                         sleep_time = 0
-                    current_edge_title = "TTL: " + current_ttl_str + \
-                        " - " + "BackTTL: " + current_edge_title
+                    current_edge_title = styled_tooltips(
+                        current_request_colors[ip_steps], current_ttl_str, current_edge_title,
+                        request_ips[ip_steps], request_address)
                     visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
                               current_node_label, DEVICE_NAME[device_color], device_color,
                               current_edge_title, current_request_colors[ip_steps])

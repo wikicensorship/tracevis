@@ -5,7 +5,6 @@ import argparse
 import contextlib
 import ipaddress
 from datetime import datetime
-from socket import SO_REUSEADDR, SOL_SOCKET
 from socket import socket
 from time import sleep
 
@@ -111,6 +110,12 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
+def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip):
+    return ("<pre style=\"color:" + current_request_colors + "\">TTL: " +
+            current_ttl_str + "<br/>Back-TTL: " + backttl +
+            "<br/>Request to:" + request_ip + "</pre>")
+
+
 def already_reached_destination(previous_node_id, current_node_ip, ip_steps):
     if previous_node_id in {str(int(ipaddress.IPv4Address(current_node_ip))),
                             (str(int(ipaddress.IPv4Address(current_node_ip)))
@@ -214,8 +219,9 @@ def main(args):
                         current_node_label = "***"
                         current_edge_title = "***"
                         sleep_time = 0
-                    current_edge_title = "TTL: " + current_ttl_str + \
-                        " - " + "BackTTL: " + current_edge_title
+                    current_edge_title = styled_tooltips(
+                        current_request_colors[ip_steps], current_ttl_str,
+                        current_edge_title, request_ips[ip_steps])
                     visualize(previous_node_ids[ip_steps], current_node_id,
                               current_node_label, DEVICE_NAME[device_color], device_color,
                               current_edge_title, current_request_colors[ip_steps])
