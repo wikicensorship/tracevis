@@ -34,7 +34,7 @@ REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", 
 
 MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
 MULTI_DIRECTED_GRAPH.add_node(
-    1, label="this device", color="Chocolate", title="start")
+    1, label=LOCALHOST, color="Chocolate", title="start")
 
 
 def parse_packet(req_answer, current_ttl):
