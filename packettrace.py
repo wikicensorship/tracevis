@@ -111,15 +111,15 @@ def visualize(previous_node_id, current_node_id,
 
 
 def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip):
-    return ("<pre style=\"color:" + current_request_colors + "\">TTL: " +
-            current_ttl_str + "<br/>Back-TTL: " + backttl +
-            "<br/>Request to:" + request_ip + "</pre>")
+    return ("<pre style=\"color:" + current_request_colors + "\">TTL: "
+            + current_ttl_str + "<br/>Back-TTL: " + backttl
+            + "<br/>Request to: " + request_ip + "</pre>")
 
 
 def already_reached_destination(previous_node_id, current_node_ip, ip_steps):
     if previous_node_id in {str(int(ipaddress.IPv4Address(current_node_ip))),
-                            (str(int(ipaddress.IPv4Address(current_node_ip)))
-                                + "0000" + str(ip_steps))}:
+                            ("middlebox" + str(int(ipaddress.IPv4Address(current_node_ip)))
+                                + "x" + str(ip_steps))}:
         return True
     else:
         return False
@@ -129,7 +129,7 @@ def are_equal(original_list, result_list):
     counter = 0
     for item in original_list:
         original_item = str(int(ipaddress.IPv4Address(item)))
-        original_item_middlebox = original_item + "0000"
+        original_item_middlebox = "middlebox" + original_item  + "x"
         reault_item = str(result_list[0][counter])
         if reault_item != original_item and not reault_item.startswith(
                 original_item_middlebox):
@@ -210,12 +210,12 @@ def main(args):
                             int(ipaddress.IPv4Address(answer_ip)))
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = (
-                                str(current_node_id) + "0000" + str(ip_steps))
+                                "middlebox" + str(current_node_id) + "x" + str(ip_steps))
                         current_node_label = answer_ip
                         current_edge_title = str(backttl)
                     else:
                         current_node_id = (
-                            str(previous_node_ids[ip_steps]) + "1111" + current_ttl_str)
+                            "unknown" + str(previous_node_ids[ip_steps]) + "x" + current_ttl_str)
                         current_node_label = "***"
                         current_edge_title = "***"
                         sleep_time = 0

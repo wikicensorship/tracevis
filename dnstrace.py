@@ -39,7 +39,6 @@ MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
 MULTI_DIRECTED_GRAPH.add_node(
     1, label=LOCALHOST, color="Chocolate", title="start")
 
-
 def parse_packet(req_answer, current_ttl):
     device_color = ""
     if req_answer is not None:
@@ -107,16 +106,16 @@ def visualize(previous_node_id, current_node_id,
 
 
 def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip, request_hostname):
-    return ("<pre style=\"color:" + current_request_colors + "\">TTL: " + \
-            current_ttl_str + "<br/>Back-TTL: " + backttl + \
-            "<br/>Request to:" + request_ip + \
-            "<br/>Request for:" + request_hostname + "</pre>")
+    return ("<pre style=\"color:" + current_request_colors + "\">TTL: "
+            + current_ttl_str + "<br/>Back-TTL: " + backttl
+            + "<br/>Request to: " + request_ip
+            + "<br/>Request for: " + request_hostname + "</pre>")
 
 
 def already_reached_destination(previous_node_id, current_node_ip, access_block_steps, ip_steps):
     if previous_node_id in {str(int(ipaddress.IPv4Address(current_node_ip))),
-                            (str(int(ipaddress.IPv4Address(current_node_ip)))
-                            + "0000" + str(access_block_steps) + str(ip_steps))}:
+                            ("middlebox" + str(int(ipaddress.IPv4Address(current_node_ip))) + "x"
+                            + str(access_block_steps) + str(ip_steps))}:
         return True
     else:
         return False
@@ -126,7 +125,7 @@ def are_equal(original_list, result_list):
     counter = 0
     for item in original_list:
         original_item = str(int(ipaddress.IPv4Address(item)))
-        original_item_middlebox = original_item + "0000"
+        original_item_middlebox = "middlebox" + original_item + "x"
         reault_item_1 = str(result_list[0][counter])
         reault_item_2 = str(result_list[1][counter])
         if reault_item_1 != original_item and not reault_item_1.startswith(
@@ -214,12 +213,12 @@ def main(args):
                             int(ipaddress.IPv4Address(answer_ip)))
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = (
-                                str(current_node_id) + "0000" + str(access_block_steps) + str(ip_steps))
+                                "middlebox" + str(current_node_id) + "x" + str(access_block_steps) + str(ip_steps))
                         current_node_label = answer_ip
                         current_edge_title = str(backttl)
                     else:
                         current_node_id = (
-                            str(previous_node_ids[access_block_steps][ip_steps]) + "1111" + current_ttl_str)
+                            "unknown" + str(previous_node_ids[access_block_steps][ip_steps]) + "x" + current_ttl_str)
                         current_node_label = "***"
                         current_edge_title = "***"
                         sleep_time = 0
