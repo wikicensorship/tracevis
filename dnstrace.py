@@ -110,12 +110,13 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
-def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip, request_hostname, elapsed_ms):
+def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip, request_hostname, elapsed_ms, repeat_all_steps):
     return ("<pre style=\"color:" + current_request_colors + "\">TTL: "
             + current_ttl_str + "<br/>Back-TTL: " + backttl
             + "<br/>Request to: " + request_ip
             + "<br/>Request for: " + request_hostname
-            + "<br/>Time: " + str(elapsed_ms) + "ms</pre>")
+            + "<br/>Time: " + str(elapsed_ms) + "ms"
+            + "<br/>Repeat step: " + str(repeat_all_steps) + "</pre>")
 
 
 def already_reached_destination(previous_node_id, current_node_ip, access_block_steps, ip_steps):
@@ -230,7 +231,7 @@ def main(args):
                         sleep_time = 0
                     current_edge_title = styled_tooltips(
                         current_request_colors[ip_steps], current_ttl_str, current_edge_title,
-                        request_ips[ip_steps], request_address, elapsed_ms)
+                        request_ips[ip_steps], request_address, elapsed_ms, repeat_all_steps)
                     visualize(previous_node_ids[access_block_steps][ip_steps], current_node_id,
                               current_node_label, DEVICE_NAME[device_color], device_color,
                               current_edge_title, current_request_colors[ip_steps])
