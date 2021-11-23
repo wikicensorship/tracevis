@@ -37,7 +37,7 @@ MULTI_DIRECTED_GRAPH.add_node(
     1, label=LOCALHOST, color="Chocolate", title="start")
 
 
-def parse_packet(req_answer, current_ttl, elapsed_ms):
+def parse_packet(req_answer, current_ttl, elapsed_ms, packet_size):
     device_color = ""
     if req_answer is not None:
         backttl = 0
@@ -58,10 +58,10 @@ def parse_packet(req_answer, current_ttl, elapsed_ms):
               + "   ip.ttl: " + str(req_answer[IP].ttl)
               + "   back-ttl: " + str(backttl))
         print("      " + req_answer.summary())
-        return req_answer[IP].src, backttl, device_color, elapsed_ms
+        return req_answer[IP].src, backttl, device_color, elapsed_ms, packet_size
     else:
         print(" *** no response *** ")
-        return "***", "***", NO_RESPONSE_COLOR, elapsed_ms
+        return "***", "***", NO_RESPONSE_COLOR, elapsed_ms, packet_size
 
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
 
@@ -100,7 +100,11 @@ def send_packet(this_packet, request_ip, current_ttl):
     req_answer = sr1(this_request, verbose=0, timeout=TIMEOUT)
     end_time = time.perf_counter()
     elapsed_ms = int(abs(end_time - start_time) * 1000)
-    return parse_packet(req_answer, current_ttl, elapsed_ms)
+    if req_answer is None:
+        packet_size = 0
+    else:
+        packet_size = len(req_answer)
+    return parse_packet(req_answer, current_ttl, elapsed_ms, packet_size)
 
 
 def visualize(previous_node_id, current_node_id,
@@ -114,11 +118,17 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
-def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip, elapsed_ms, repeat_all_steps):
+def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip,
+                    elapsed_ms, packet_size, repeat_all_steps):
+    time_size = 0
+    if packet_size != 0:
+        time_size = format(elapsed_ms/packet_size, '.3f')
     return ("<pre style=\"color:" + current_request_colors + "\">TTL: "
             + current_ttl_str + "<br/>Back-TTL: " + backttl
             + "<br/>Request to: " + request_ip
             + "<br/>Time: " + str(elapsed_ms) + "ms"
+            + "<br/>Size: " + str(packet_size) + "B"
+            + "<br/>Time/Size: " + str(time_size) + "ms/B"
             + "<br/>Repeat step: " + str(repeat_all_steps) + "</pre>")
 
 
@@ -199,12 +209,12 @@ def main(args):
                     previous_node_ids[ip_steps], request_ips[ip_steps], ip_steps))
                 if just_graph:
                     if not_yet_destination:
-                        answer_ip, backttl, device_color, elapsed_ms = send_packet(
+                        answer_ip, backttl, device_color, elapsed_ms, packet_size = send_packet(
                             copy_packet, request_ips[ip_steps], current_ttl)
                     else:
                         sleep_time = 0
                 else:
-                    answer_ip, backttl, device_color, elapsed_ms = send_packet(
+                    answer_ip, backttl, device_color, elapsed_ms, packet_size = send_packet(
                         copy_packet, request_ips[ip_steps], current_ttl)
                 if not_yet_destination:
                     current_node_label = ""
@@ -227,7 +237,8 @@ def main(args):
                         sleep_time = 0
                     current_edge_title = styled_tooltips(
                         current_request_colors[ip_steps], current_ttl_str,
-                        current_edge_title, request_ips[ip_steps], elapsed_ms, repeat_all_steps)
+                        current_edge_title, request_ips[ip_steps], elapsed_ms,
+                        packet_size, repeat_all_steps)
                     visualize(previous_node_ids[ip_steps], current_node_id,
                               current_node_label, DEVICE_NAME[device_color], device_color,
                               current_edge_title, current_request_colors[ip_steps])
