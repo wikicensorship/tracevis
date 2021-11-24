@@ -1,6 +1,5 @@
-# dnstrace
-Trace route with DNS packets and find the middlebox
-
+# tracevis
+Visualize traceroutes and trace route with DNS packets to find the middlebox
 
 ## 
 
