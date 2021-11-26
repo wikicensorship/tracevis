@@ -16,6 +16,9 @@ from scapy.layers.inet import IP, UDP
 from scapy.sendrecv import sr1
 from scapy.volatile import RandShort
 
+from traceroute_struct import Traceroute
+import json
+
 LOCALHOST = '127.0.0.1'
 
 SLEEP_TIME = 1
@@ -62,10 +65,10 @@ def parse_packet(req_answer, current_ttl, elapsed_ms, packet_size):
               + "   ip.ttl: " + str(req_answer[IP].ttl)
               + "   back-ttl: " + str(backttl))
         print("      " + req_answer.summary())
-        return req_answer[IP].src, backttl, device_color, elapsed_ms, packet_size
+        return req_answer[IP].src, backttl, device_color, elapsed_ms, packet_size, req_answer[IP].ttl
     else:
         print(" *** no response *** ")
-        return "***", "***", NO_RESPONSE_COLOR, elapsed_ms, packet_size
+        return "***", "***", NO_RESPONSE_COLOR, elapsed_ms, packet_size, 0
 
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
 
@@ -196,6 +199,20 @@ def main(args):
     if args.get("graph"):
         just_graph = True
     repeat_all_steps = 0
+    traceroute_accessible_list = []
+    traceroute_blocked_list = []
+    for ip_arg in request_ips:
+        traceroute_accessible_list.append(
+            Traceroute(
+                ip_arg, ACCESSIBLE_ADDRESS, LOCALHOST, 0, graph_name, 0, "UDP", LOCALHOST, int(datetime.utcnow().timestamp())
+            )
+        )
+    for ip_arg in request_ips:
+        traceroute_blocked_list.append(
+            Traceroute(
+                ip_arg, blocked_address, LOCALHOST, 0, graph_name, 0, "UDP", LOCALHOST, int(datetime.utcnow().timestamp())
+            )
+        )
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = [
@@ -215,13 +232,17 @@ def main(args):
                     request_ips[ip_steps], access_block_steps, ip_steps))
                 if just_graph:
                     if not_yet_destination:
-                        answer_ip, backttl, device_color, elapsed_ms, packet_size = send_packet(
+                        answer_ip, backttl, device_color, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                             request_ips[ip_steps], current_ttl, request_address)
+                        traceroute_list = traceroute_blocked_list if access_block_steps else traceroute_accessible_list
+                        traceroute_list[ip_steps].add_hop(current_ttl, answer_ip, float(elapsed_ms), packet_size, req_answer_ttl)
                     else:
                         sleep_time = 0
                 else:
-                    answer_ip, backttl, device_color, elapsed_ms, packet_size = send_packet(
+                    answer_ip, backttl, device_color, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                         request_ips[ip_steps], current_ttl, request_address)
+                    traceroute_list = traceroute_blocked_list if access_block_steps else traceroute_accessible_list
+                    traceroute_list[ip_steps].add_hop(current_ttl, answer_ip, float(elapsed_ms), packet_size, req_answer_ttl)
                 if not_yet_destination:
                     current_node_label = ""
                     current_edge_title = ""
@@ -274,6 +295,13 @@ def main(args):
     net_vis.from_nx(MULTI_DIRECTED_GRAPH)
     net_vis.set_edge_smooth('dynamic')
     net_vis.show(graph_name + ".html")
+    traceroute_final_json = []
+    for traceroute_data in traceroute_accessible_list:
+        traceroute_final_json.append(traceroute_data)
+    for traceroute_data in traceroute_blocked_list:
+        traceroute_final_json.append(traceroute_data)
+    with open(graph_name + ".json", "a") as jsonfile:
+        jsonfile.write(json.dumps(traceroute_final_json, default=lambda o: o.__dict__, indent=4))
 
 
 if __name__ == "__main__":
