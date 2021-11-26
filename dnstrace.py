@@ -95,7 +95,7 @@ def send_packet(request_ip, current_ttl, request_address):
     start_time = time.perf_counter()
     req_answer = sr1(dns_request, verbose=0, timeout=TIMEOUT)
     end_time = time.perf_counter()
-    elapsed_ms = format(abs((end_time - start_time) * 1000), '.3f')
+    elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
     if req_answer is None:
         packet_size = 0
     else:

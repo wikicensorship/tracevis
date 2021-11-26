@@ -168,7 +168,7 @@ def get_args():
     parser.add_argument('-p', '--prefix', action='store',
                         help="prefix for the graph file name")
     parser.add_argument('-i', '--ips', type=str, required=True,
-                        help="add comma-separated IPs (up to 8)")
+                        help="add comma-separated IPs (up to 12)")
     parser.add_argument('-g', '--graph', action='store_true',
                         help="no further TTL advance after reaching the endpoint")
     args = parser.parse_args()
