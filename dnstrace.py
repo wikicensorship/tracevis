@@ -242,7 +242,7 @@ def main(args):
                     answer_ip, backttl, device_color, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                         request_ips[ip_steps], current_ttl, request_address)
                     traceroute_list = traceroute_blocked_list if access_block_steps else traceroute_accessible_list
-                    traceroute_list[ip_steps].add_hop(current_ttl, answer_ip, float(elapsed_ms), packet_size, req_answer_ttl)
+                    traceroute_list[ip_steps].add_hop(current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl)
                 if not_yet_destination:
                     current_node_label = ""
                     current_edge_title = ""
