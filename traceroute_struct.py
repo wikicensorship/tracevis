@@ -1,16 +1,18 @@
 import json
 
+
 class Traceroute:
     def __init__(
-        self, dst_addr: str, dst_name: str,
-        from_ip: str, msm_id: int,
-        msm_name: str, prb_id: int, proto: str,
-        src_addr: str, timestamp: int, ttr: float = -1,
-        type: str = "traceroute", af: int = 4, lts: int = -1, paris_id: int = -1, size: int = -1
+        self, dst_addr: str, annotation: str, proto: str, timestamp: int,
+        src_addr: str = "127.0.0.2", from_ip: str = "127.0.0.1",
+        prb_id: int = -1, msm_id: int = -1, msm_name: str = "traceroute",
+        ttr: float = -1, af: int = 4, lts: int = -1, paris_id: int = -1,
+        size: int = -1, dst_name: str = ""
     ) -> None:
         self.af = af
         self.dst_addr = dst_addr
         self.dst_name = dst_name
+        self.annotation = annotation
         self.endtime = -1
         self.from_ip = from_ip
         self.lts = lts
@@ -24,7 +26,6 @@ class Traceroute:
         self.src_addr = src_addr
         self.timestamp = timestamp
         self.ttr = ttr
-        self.type = type
 
     def add_hop(self, hop, from_ip, rtt, size, ttl):
         if len(self.result) < hop:
@@ -40,7 +41,10 @@ class Traceroute:
                 "size": size,
                 "ttl": ttl
             })
+    
+    def set_endtime(self,endtime):
+        self.endtime = endtime
 
     def json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, 
-            indent=4)
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          indent=4)

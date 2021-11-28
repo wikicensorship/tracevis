@@ -4,6 +4,7 @@ from __future__ import absolute_import, unicode_literals
 import argparse
 import contextlib
 import ipaddress
+import json
 import time
 from datetime import datetime
 from socket import socket
@@ -17,7 +18,6 @@ from scapy.sendrecv import sr1
 from scapy.volatile import RandShort
 
 from traceroute_struct import Traceroute
-import json
 
 LOCALHOST = '127.0.0.1'
 
@@ -28,8 +28,9 @@ WINDOWS_COLOR = "blue"
 LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
-DEVICE_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
-               LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
+DEVICE_NAME = {
+    ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
+    LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
 ACCESSIBLE_REQUEST_COLORS = ["DarkTurquoise", "LimeGreen", "DodgerBlue",
                              "MediumSlateBlue", "Green", "YellowGreen"]
 BLOCKED_REQUEST_COLORS = ["HotPink", "Red",
@@ -39,9 +40,11 @@ DEFAULT_IPS = ["8.8.4.4", "1.0.0.1", "9.9.9.9"]
 ACCESSIBLE_ADDRESS = "www.example.com"
 DEFAULT_BLOCKED_ADDRESS = "www.twitter.com"
 
-MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
-MULTI_DIRECTED_GRAPH.add_node(
+multi_directed_graph = nx.MultiDiGraph()
+multi_directed_graph.add_node(
     1, label=LOCALHOST, color="Chocolate", title="start")
+
+measurement_data = [[], []]
 
 
 def parse_packet(req_answer, current_ttl, elapsed_ms, packet_size):
@@ -109,11 +112,11 @@ def send_packet(request_ip, current_ttl, request_address):
 def visualize(previous_node_id, current_node_id,
               current_node_label, current_node_title, device_color,
               current_edge_title, requset_color):
-    if not MULTI_DIRECTED_GRAPH.has_node(current_node_id):
-        MULTI_DIRECTED_GRAPH.add_node(current_node_id,
+    if not multi_directed_graph.has_node(current_node_id):
+        multi_directed_graph.add_node(current_node_id,
                                       label=current_node_label, color=device_color,
                                       title=current_node_title)
-    MULTI_DIRECTED_GRAPH.add_edge(previous_node_id, current_node_id,
+    multi_directed_graph.add_edge(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
@@ -122,7 +125,7 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
     time_size = 0
     if packet_size != 0:
         time_size = format(elapsed_ms/packet_size, '.3f')
-    if elapsed_ms > TIMEOUT:
+    if elapsed_ms > (TIMEOUT * 1000):
         elapsed_ms = 0
     return ("<pre style=\"color:" + current_request_colors + "\">TTL: "
             + current_ttl_str + "<br/>Back-TTL: " + backttl
@@ -134,10 +137,12 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
             + "<br/>Repeat step: " + str(repeat_all_steps) + "</pre>")
 
 
-def already_reached_destination(previous_node_id, current_node_ip, access_block_steps, ip_steps):
-    if previous_node_id in {str(int(ipaddress.IPv4Address(current_node_ip))),
-                            ("middlebox" + str(int(ipaddress.IPv4Address(current_node_ip))) + "x"
-                            + str(access_block_steps) + str(ip_steps))}:
+def already_reached_destination(
+        previous_node_id, current_node_ip, access_block_steps, ip_steps):
+    if previous_node_id in {
+        str(int(ipaddress.IPv4Address(current_node_ip))),
+        ("middlebox" + str(int(ipaddress.IPv4Address(current_node_ip))) + "x"
+         + str(access_block_steps) + str(ip_steps))}:
         return True
     else:
         return False
@@ -165,6 +170,38 @@ def initialize_first_nodes(request_ips):
     for _ in request_ips:
         nodes.append(1)
     return nodes
+
+
+def initialize_json_first_nodes(request_ips, annotation, protocol):
+    start_time = int(datetime.utcnow().timestamp())
+    for request_ip in request_ips:
+        measurement_data[0].append(
+            Traceroute(
+                dst_addr=request_ip, annotation=ACCESSIBLE_ADDRESS,
+                src_addr=LOCALHOST, proto=protocol, timestamp=start_time
+            )
+        )
+        measurement_data[1].append(
+            Traceroute(
+                dst_addr=request_ip, annotation=annotation,
+                src_addr=LOCALHOST, proto=protocol, timestamp=start_time
+            )
+        )
+
+
+def save_measurement_data(request_ips, graph_name):
+    end_time = int(datetime.utcnow().timestamp())
+    measurement_data_json = []
+    ip_steps = 0
+    while ip_steps < len(request_ips):
+        measurement_data[0][ip_steps].set_endtime(end_time)
+        measurement_data[1][ip_steps].set_endtime(end_time)
+        measurement_data_json.append(measurement_data[0][ip_steps])
+        measurement_data_json.append(measurement_data[1][ip_steps])
+        ip_steps += 1
+    with open(graph_name + ".json", "a") as jsonfile:
+        jsonfile.write(json.dumps(measurement_data_json,
+                       default=lambda o: o.__dict__, indent=4))
 
 
 def get_args():
@@ -199,20 +236,9 @@ def main(args):
     if args.get("graph"):
         just_graph = True
     repeat_all_steps = 0
-    traceroute_accessible_list = []
-    traceroute_blocked_list = []
-    for ip_arg in request_ips:
-        traceroute_accessible_list.append(
-            Traceroute(
-                ip_arg, ACCESSIBLE_ADDRESS, LOCALHOST, 0, graph_name, 0, "UDP", LOCALHOST, int(datetime.utcnow().timestamp())
-            )
-        )
-    for ip_arg in request_ips:
-        traceroute_blocked_list.append(
-            Traceroute(
-                ip_arg, blocked_address, LOCALHOST, 0, graph_name, 0, "UDP", LOCALHOST, int(datetime.utcnow().timestamp())
-            )
-        )
+    initialize_json_first_nodes(
+        request_ips=request_ips, annotation=blocked_address, protocol="UDP"
+    )
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = [
@@ -234,15 +260,17 @@ def main(args):
                     if not_yet_destination:
                         answer_ip, backttl, device_color, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                             request_ips[ip_steps], current_ttl, request_address)
-                        traceroute_list = traceroute_blocked_list if access_block_steps else traceroute_accessible_list
-                        traceroute_list[ip_steps].add_hop(current_ttl, answer_ip, float(elapsed_ms), packet_size, req_answer_ttl)
+                        measurement_data[access_block_steps][ip_steps].add_hop(
+                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl
+                        )
                     else:
                         sleep_time = 0
                 else:
                     answer_ip, backttl, device_color, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                         request_ips[ip_steps], current_ttl, request_address)
-                    traceroute_list = traceroute_blocked_list if access_block_steps else traceroute_accessible_list
-                    traceroute_list[ip_steps].add_hop(current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl)
+                    measurement_data[access_block_steps][ip_steps].add_hop(
+                        current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl
+                    )
                 if not_yet_destination:
                     current_node_label = ""
                     current_edge_title = ""
@@ -282,7 +310,7 @@ def main(args):
                         " ********************************************************************** ")
             net_vis = Network("1500px", "1500px",
                               directed=True, bgcolor="#eeeeee")
-            net_vis.from_nx(MULTI_DIRECTED_GRAPH)
+            net_vis.from_nx(multi_directed_graph)
             net_vis.set_edge_smooth('dynamic')
             net_vis.save_graph(graph_name + ".html")
             print(
@@ -291,17 +319,14 @@ def main(args):
                 " ********************************************************************** ")
             print(
                 " ********************************************************************** ")
+    print("saving measurement data...")
+    save_measurement_data(request_ips, graph_name)
+    print("saving measurement graph...")
     net_vis = Network("1500px", "1500px", directed=True, bgcolor="#eeeeee")
-    net_vis.from_nx(MULTI_DIRECTED_GRAPH)
+    net_vis.from_nx(multi_directed_graph)
     net_vis.set_edge_smooth('dynamic')
     net_vis.show(graph_name + ".html")
-    traceroute_final_json = []
-    for traceroute_data in traceroute_accessible_list:
-        traceroute_final_json.append(traceroute_data)
-    for traceroute_data in traceroute_blocked_list:
-        traceroute_final_json.append(traceroute_data)
-    with open(graph_name + ".json", "a") as jsonfile:
-        jsonfile.write(json.dumps(traceroute_final_json, default=lambda o: o.__dict__, indent=4))
+    print("finished.")
 
 
 if __name__ == "__main__":
