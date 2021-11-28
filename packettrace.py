@@ -99,7 +99,7 @@ def send_packet(this_packet, request_ip, current_ttl):
     start_time = time.perf_counter()
     req_answer = sr1(this_request, verbose=0, timeout=TIMEOUT)
     end_time = time.perf_counter()
-    elapsed_ms = format(abs((end_time - start_time) * 1000), '.3f')
+    elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
     if req_answer is None:
         packet_size = 0
     else:
@@ -123,7 +123,7 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
     time_size = 0
     if packet_size != 0:
         time_size = format(elapsed_ms/packet_size, '.3f')
-    if elapsed_ms > TIMEOUT:
+    if elapsed_ms > (TIMEOUT * 1000):
         elapsed_ms = 0
     return ("<pre style=\"color:" + current_request_colors + "\">TTL: "
             + current_ttl_str + "<br/>Back-TTL: " + backttl
