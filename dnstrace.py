@@ -5,6 +5,7 @@ import argparse
 import contextlib
 import ipaddress
 import json
+import os
 import time
 from datetime import datetime
 from socket import socket
@@ -46,6 +47,8 @@ multi_directed_graph.add_node(
 
 measurement_data = [[], []]
 
+TEMPLATE_PATH = os.path.dirname(__file__) + "/templates/template_offline.html"
+OUTPUT_DIR = "./output/"
 
 def parse_packet(req_answer, current_ttl, elapsed_ms, packet_size):
     device_color = ""
@@ -188,6 +191,17 @@ def initialize_json_first_nodes(request_ips, annotation, protocol):
             )
         )
 
+def save_measurement_graph(graph_name, attach_jscss):
+    net_vis = Network("1500px", "1500px",
+                        directed=True, bgcolor="#eeeeee")
+    net_vis.from_nx(multi_directed_graph)
+    net_vis.set_edge_smooth('dynamic')
+    if attach_jscss:
+        net_vis.set_template(TEMPLATE_PATH)
+    graph_path = OUTPUT_DIR + graph_name + ".html"
+    net_vis.save_graph(graph_path)
+    print("saved: " + graph_path)
+
 
 def save_measurement_data(request_ips, graph_name):
     end_time = int(datetime.utcnow().timestamp())
@@ -199,9 +213,11 @@ def save_measurement_data(request_ips, graph_name):
         measurement_data_json.append(measurement_data[0][ip_steps])
         measurement_data_json.append(measurement_data[1][ip_steps])
         ip_steps += 1
-    with open(graph_name + ".json", "a") as jsonfile:
+    data_path = OUTPUT_DIR + graph_name + ".json"
+    with open(data_path, "a") as jsonfile:
         jsonfile.write(json.dumps(measurement_data_json,
                        default=lambda o: o.__dict__, indent=4))
+    print("saved: " + data_path)
 
 
 def get_args():
@@ -214,6 +230,8 @@ def get_args():
                         help="change the default blocked domain name")
     parser.add_argument('-g', '--graph', action='store_true',
                         help="no further TTL advance after reaching the endpoint")
+    parser.add_argument('-a', '--attach', action='store_true',
+                        help="attach VisJS javascript and CSS to the HTML file (work offline)")
     args = parser.parse_args()
     return args
 
@@ -223,6 +241,7 @@ def main(args):
     request_ips = DEFAULT_IPS
     blocked_address = DEFAULT_BLOCKED_ADDRESS
     just_graph = False
+    attach_jscss = False
     request_ips = []
     if args.get("prefix"):
         graph_name = args["prefix"] + "-dns-graph-" + \
@@ -235,10 +254,15 @@ def main(args):
         blocked_address = args["domain"]
     if args.get("graph"):
         just_graph = True
+    if args.get("attach"):
+        attach_jscss = True
     repeat_all_steps = 0
     initialize_json_first_nodes(
         request_ips=request_ips, annotation=blocked_address, protocol="UDP"
     )
+    if not os.path.exists(OUTPUT_DIR):
+        os.mkdir(OUTPUT_DIR)
+    print("− · − · −     − · − · −     − · − · −     − · − · −")
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = [
@@ -308,11 +332,7 @@ def main(args):
                     access_block_steps = 1
                     print(
                         " ********************************************************************** ")
-            net_vis = Network("1500px", "1500px",
-                              directed=True, bgcolor="#eeeeee")
-            net_vis.from_nx(multi_directed_graph)
-            net_vis.set_edge_smooth('dynamic')
-            net_vis.save_graph(graph_name + ".html")
+            save_measurement_graph(graph_name, attach_jscss) # I can't wait :P
             print(
                 " ********************************************************************** ")
             print(
@@ -322,11 +342,9 @@ def main(args):
     print("saving measurement data...")
     save_measurement_data(request_ips, graph_name)
     print("saving measurement graph...")
-    net_vis = Network("1500px", "1500px", directed=True, bgcolor="#eeeeee")
-    net_vis.from_nx(multi_directed_graph)
-    net_vis.set_edge_smooth('dynamic')
-    net_vis.show(graph_name + ".html")
+    save_measurement_graph(graph_name, attach_jscss)
     print("finished.")
+    print("· · · − · −     · · · − · −     · · · − · −     · · · − · −")
 
 
 if __name__ == "__main__":
