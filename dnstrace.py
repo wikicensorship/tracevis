@@ -47,8 +47,9 @@ multi_directed_graph.add_node(
 
 measurement_data = [[], []]
 
-TEMPLATE_PATH = os.path.dirname(__file__) + "/templates/template_offline.html"
+TEMPLATE_PATH = os.path.dirname(__file__) + "/templates/template_offline.tmplt"
 OUTPUT_DIR = "./output/"
+
 
 def parse_packet(req_answer, current_ttl, elapsed_ms, packet_size):
     device_color = ""
@@ -191,9 +192,10 @@ def initialize_json_first_nodes(request_ips, annotation, protocol):
             )
         )
 
+
 def save_measurement_graph(graph_name, attach_jscss):
     net_vis = Network("1500px", "1500px",
-                        directed=True, bgcolor="#eeeeee")
+                      directed=True, bgcolor="#eeeeee")
     net_vis.from_nx(multi_directed_graph)
     net_vis.set_edge_smooth('dynamic')
     if attach_jscss:
@@ -332,7 +334,7 @@ def main(args):
                     access_block_steps = 1
                     print(
                         " ********************************************************************** ")
-            save_measurement_graph(graph_name, attach_jscss) # I can't wait :P
+            save_measurement_graph(graph_name, attach_jscss)  # I can't wait :P
             print(
                 " ********************************************************************** ")
             print(
