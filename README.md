@@ -12,7 +12,7 @@ python3 -m pip install -r requirements.txt
 Run:
 
 ```sh
-python3 ./dnstrace.py --dns
+python3 ./tracevis.py --dns
 ```
 
 Example:
