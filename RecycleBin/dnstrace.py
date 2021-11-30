@@ -18,7 +18,7 @@ from scapy.layers.inet import IP, UDP
 from scapy.sendrecv import sr1
 from scapy.volatile import RandShort
 
-from traceroute_struct import Traceroute
+from util.traceroute_struct import Traceroute
 
 LOCALHOST = '127.0.0.1'
 

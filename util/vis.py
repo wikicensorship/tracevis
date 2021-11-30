@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import absolute_import, unicode_literals
 
-import argparse
-import contextlib
 import ipaddress
 import json
-import urllib.request
-from datetime import datetime
+
+import os
 from time import sleep
 
 import networkx as nx
-from networkx.classes.function import is_empty
 from pyvis.network import Network
 
 ROUTER_COLOR = "green"
@@ -23,19 +20,10 @@ DEVICE_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
 REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
                   "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
 
-MEASUREMENT_IDS = [
-    5011,  # c.root-servers.net
-    5013,  # e.root-servers.net
-    5004,  # f.root-servers.net
-    5005,  # i.root-servers.net
-    5001,  # k.root-servers.net
-    5008,  # l.root-servers.net
-    5006,  # m.root-servers.net
-    5005,  # topology4.dyndns.atlas.ripe.net
-    5151  # topology4.dyndns.atlas.ripe.net
-]
 
-MULTI_DIRECTED_GRAPH = nx.MultiDiGraph()
+TEMPLATE_PATH = os.path.dirname(__file__) + "/templates/template_offline.tmplt"
+
+multi_directed_graph = nx.MultiDiGraph()
 
 
 def parse_ttl(response_ttl, current_ttl):
@@ -59,11 +47,11 @@ def parse_ttl(response_ttl, current_ttl):
 def visualize(previous_node_id, current_node_id,
               current_node_label, current_node_title, device_color,
               current_edge_title, requset_color, current_edge_label):
-    if not MULTI_DIRECTED_GRAPH.has_node(current_node_id):
-        MULTI_DIRECTED_GRAPH.add_node(current_node_id,
+    if not multi_directed_graph.has_node(current_node_id):
+        multi_directed_graph.add_node(current_node_id,
                                       label=current_node_label, color=device_color,
                                       title=current_node_title)
-    MULTI_DIRECTED_GRAPH.add_edge(previous_node_id, current_node_id, label=current_edge_label,
+    multi_directed_graph.add_edge(previous_node_id, current_node_id, label=current_edge_label,
                                   color=requset_color, title=current_edge_title)
 
 
@@ -87,6 +75,34 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
             + "<br/>Repeat step: " + str(repeat_all_steps) + "</pre>")
 
 
+def already_reached_destination(
+        previous_node_id, current_node_ip, access_block_steps, ip_steps):
+    if previous_node_id in {
+        str(int(ipaddress.IPv4Address(current_node_ip))),
+        ("middlebox" + str(int(ipaddress.IPv4Address(current_node_ip))) + "x"
+         + str(access_block_steps) + str(ip_steps))}:
+        return True
+    else:
+        return False
+
+
+def are_equal(original_list, result_list):
+    counter = 0
+    for item in original_list:
+        original_item = str(int(ipaddress.IPv4Address(item)))
+        original_item_middlebox = "middlebox" + original_item + "x"
+        reault_item_1 = str(result_list[0][counter])
+        reault_item_2 = str(result_list[1][counter])
+        if reault_item_1 != original_item and not reault_item_1.startswith(
+                original_item_middlebox):
+            return False
+        if reault_item_2 != original_item and not reault_item_2.startswith(
+                original_item_middlebox):
+            return False
+        counter += 1
+    return True
+
+
 def initialize_first_nodes(src_addr):
     nodes = []
     for _ in range(10):
@@ -94,71 +110,29 @@ def initialize_first_nodes(src_addr):
     return nodes
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description='trace route of a packet')
-    parser.add_argument('-p', '--prefix', action='store',
-                        help="prefix for the graph file name")
-    parser.add_argument('-i', '--id', type=str,
-                        help="probe ID")
-    parser.add_argument('-f', '--file', type=str,
-                        help=" open a measurement file")
-    args = parser.parse_args()
-    return args
+def save_measurement_graph(graph_name, attach_jscss):
+    net_vis = Network("1500px", "1500px",
+                      directed=True, bgcolor="#eeeeee")
+    net_vis.from_nx(multi_directed_graph)
+    net_vis.set_edge_smooth('dynamic')
+    if attach_jscss:
+        net_vis.set_template(TEMPLATE_PATH)
+    if graph_name.endswith(".json"):
+        graph_name = graph_name[:-5]
+    graph_path = graph_name + ".html"
+    net_vis.save_graph(graph_path)
+    print("saved: " + graph_path)
 
 
-def main(args):
+def vis(measurement_path, attach_jscss):
     all_measurements = []
-    probe_id = ""
-    graph_name = ""
-    if args.get("id"):
-        probe_id = str(args["id"])
-    if args.get("prefix"):
-        graph_name = args["prefix"] + "-ripe-atlas-" + probe_id + "-traceroute-graph-" \
-            + datetime.utcnow().strftime("%Y%m%d-%H%M")
-    else:
-        graph_name = "ripe-" + probe_id + "-traceroute-graph-" \
-            + datetime.utcnow().strftime("%Y%m%d-%H%M")
-    if probe_id != "":
-        print(
-            " ********************************************************************** ")
-        print(
-            "downloading data from probe ID: " + str(probe_id))
-        print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-        for measurement_id in MEASUREMENT_IDS:
-            print(
-                "downloading measurement ID: " + str(measurement_id))
-            requset_url = ("https://atlas.ripe.net/api/v2/measurements/" 
-                + str(measurement_id)
-                + "/latest/?format=json&probe_ids="
-                + str(probe_id)
-            )
-            with urllib.request.urlopen(requset_url) as url:
-                downloaded_data = json.loads(url.read().decode())
-            if downloaded_data is not None:
-                all_measurements.append(downloaded_data[0])
-                print(
-                    "downloading measurement ID " + str(measurement_id) + " finished.")
-            else:
-                print("failed to download measurement ID: "
-                    + str(measurement_id))
-            sleep(3)
-            print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-        print(
-            " ********************************************************************** ")
-        if len(all_measurements) < 1:
-            exit()
-        print("saving json file to: " + graph_name + ".json")
-        with open((graph_name + ".json"), 'w', encoding='utf-8') as json_file:
-            json.dump(all_measurements, json_file, ensure_ascii=False, indent=4)
-        print(
-            " ********************************************************************** ")
-    elif args.get("file"):
-        with open(args["file"]) as json_file:
-            all_measurements = json.load(json_file)
+    was_successful = False
+    with open(measurement_path) as json_file:
+        all_measurements = json.load(json_file)
     measurement_steps = 0
     src_addr = all_measurements[0]["src_addr"]
     src_addr_id = str(int(ipaddress.IPv4Address(src_addr)))
-    MULTI_DIRECTED_GRAPH.add_node(
+    multi_directed_graph.add_node(
         src_addr_id, label=src_addr, color="Chocolate", title="source address")
     for measurement in all_measurements:
         previous_node_ids = initialize_first_nodes(src_addr_id)
@@ -220,11 +194,6 @@ def main(args):
                 previous_node_ids[repeat_steps] = current_node_id
                 repeat_steps += 1
         measurement_steps += 1
-    net_vis = Network("1500px", "1500px", directed=True, bgcolor="#eeeeee")
-    net_vis.from_nx(MULTI_DIRECTED_GRAPH)
-    net_vis.set_edge_smooth('dynamic')
-    net_vis.show(graph_name + ".html")
-
-
-if __name__ == "__main__":
-    main(vars(get_args()))
+    print("saving measurement graph...")
+    save_measurement_graph(measurement_path, attach_jscss)
+    print("· · · − · −     · · · − · −     · · · − · −     · · · − · −")
