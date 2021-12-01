@@ -26,10 +26,10 @@ def download_from_atlas(probe_id, prefix: str = ""):
     measurement_name = ""
     was_successful = False
     if prefix != "":
-        measurement_name = prefix + "-ripe-atlas-" + probe_id + "-tracevis-" \
+        measurement_name = prefix + "-ripe-atlas-" + str(probe_id) + "-tracevis-" \
             + datetime.utcnow().strftime("%Y%m%d-%H%M")
     else:
-        measurement_name = "ripe-" + probe_id + "-traceroute-graph-" \
+        measurement_name = "ripe-atlas-" + str(probe_id) + "-tracevis-" \
             + datetime.utcnow().strftime("%Y%m%d-%H%M")
     if probe_id != "":
         print(

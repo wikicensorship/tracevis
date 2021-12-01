@@ -81,7 +81,7 @@ def main(args):
             just_graph=just_graph)
     if args.get("ripe"):
         was_successful, measurement_path = util.ripe_atlas.download_from_atlas(
-            probe_id=args["domain"])
+            probe_id=args["ripe"])
     if args.get("file"):
         was_successful = True
         measurement_path = args["file"]

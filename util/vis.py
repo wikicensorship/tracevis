@@ -75,32 +75,13 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
             + "<br/>Repeat step: " + str(repeat_all_steps) + "</pre>")
 
 
-def already_reached_destination(
-        previous_node_id, current_node_ip, access_block_steps, ip_steps):
+def already_reached_destination(previous_node_id, current_node_ip):
     if previous_node_id in {
-        str(int(ipaddress.IPv4Address(current_node_ip))),
-        ("middlebox" + str(int(ipaddress.IPv4Address(current_node_ip))) + "x"
-         + str(access_block_steps) + str(ip_steps))}:
+        str(current_node_ip),
+        ("middlebox" + str(current_node_ip) + "x")}:
         return True
     else:
         return False
-
-
-def are_equal(original_list, result_list):
-    counter = 0
-    for item in original_list:
-        original_item = str(int(ipaddress.IPv4Address(item)))
-        original_item_middlebox = "middlebox" + original_item + "x"
-        reault_item_1 = str(result_list[0][counter])
-        reault_item_2 = str(result_list[1][counter])
-        if reault_item_1 != original_item and not reault_item_1.startswith(
-                original_item_middlebox):
-            return False
-        if reault_item_2 != original_item and not reault_item_2.startswith(
-                original_item_middlebox):
-            return False
-        counter += 1
-    return True
 
 
 def initialize_first_nodes(src_addr):
@@ -149,49 +130,52 @@ def vis(measurement_path, attach_jscss):
                 if skip_next:
                     skip_next = False
                     continue
-                if "late" in result.keys():
-                    skip_next = True
-                current_node_label = ""
-                current_edge_title = ""
-                current_edge_label = ""
-                current_node_id = "0"
-                if 'x' in result.keys():
-                    current_node_id = (
-                        "unknown" + previous_node_ids[repeat_steps] + "x" + current_ttl_str)
-                    current_node_label = "***"
-                    current_edge_title = "***"
-                    current_edge_label = "*"
-                    device_color = NO_RESPONSE_COLOR
-                    elapsed_ms = "*"
-                    packet_size = "*"
-                else:
-                    answer_ip = result["from"]
-                    backttl, device_color = parse_ttl(
-                        result["ttl"], current_ttl)
-                    if "rtt" in result.keys():
-                        elapsed_ms = result["rtt"]
-                        current_edge_label = str(format(elapsed_ms, '.3f'))
-                    else:
-                        elapsed_ms = "*"
-                        current_edge_label = "*"
-                    current_node_id = str(
-                        int(ipaddress.IPv4Address(answer_ip)))
-                    if device_color == MIDDLEBOX_COLOR:
+                not_yet_destination = not (already_reached_destination(
+                    previous_node_ids[repeat_steps], dst_addr_id))
+                if not_yet_destination:
+                    if "late" in result.keys():
+                        skip_next = True
+                    current_node_label = ""
+                    current_edge_title = ""
+                    current_edge_label = ""
+                    current_node_id = "0"
+                    if 'x' in result.keys():
                         current_node_id = (
-                            "middlebox" + str(current_node_id) + "x")
-                    current_node_label = answer_ip
-                    current_edge_title = str(backttl)
-                    packet_size = result["size"]
-                current_edge_title = styled_tooltips(
-                    REQUEST_COLORS[measurement_steps], current_ttl_str,
-                    current_edge_title, dst_addr, elapsed_ms,
-                    packet_size, (repeat_steps + 1))
-                visualize(
-                    previous_node_ids[repeat_steps], current_node_id,
-                    current_node_label, DEVICE_NAME[device_color], device_color,
-                    current_edge_title, REQUEST_COLORS[measurement_steps], current_edge_label
-                )
-                previous_node_ids[repeat_steps] = current_node_id
+                            "unknown" + previous_node_ids[repeat_steps] + "x" + current_ttl_str)
+                        current_node_label = "***"
+                        current_edge_title = "***"
+                        current_edge_label = "*"
+                        device_color = NO_RESPONSE_COLOR
+                        elapsed_ms = "*"
+                        packet_size = "*"
+                    else:
+                        answer_ip = result["from"]
+                        backttl, device_color = parse_ttl(
+                            result["ttl"], current_ttl)
+                        if "rtt" in result.keys():
+                            elapsed_ms = result["rtt"]
+                            current_edge_label = str(format(elapsed_ms, '.3f'))
+                        else:
+                            elapsed_ms = "*"
+                            current_edge_label = "*"
+                        current_node_id = str(
+                            int(ipaddress.IPv4Address(answer_ip)))
+                        if device_color == MIDDLEBOX_COLOR:
+                            current_node_id = (
+                                "middlebox" + str(current_node_id) + "x")
+                        current_node_label = answer_ip
+                        current_edge_title = str(backttl)
+                        packet_size = result["size"]
+                    current_edge_title = styled_tooltips(
+                        REQUEST_COLORS[measurement_steps], current_ttl_str,
+                        current_edge_title, dst_addr, elapsed_ms,
+                        packet_size, (repeat_steps + 1))
+                    visualize(
+                        previous_node_ids[repeat_steps], current_node_id,
+                        current_node_label, DEVICE_NAME[device_color], device_color,
+                        current_edge_title, REQUEST_COLORS[measurement_steps], current_edge_label
+                    )
+                    previous_node_ids[repeat_steps] = current_node_id
                 repeat_steps += 1
         measurement_steps += 1
     print("saving measurement graph...")
