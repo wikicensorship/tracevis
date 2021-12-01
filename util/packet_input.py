@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
 from scapy.layers.inet import IP
 from scapy.utils import import_hexcap
+
 
 def yesno_second_packet(question):
     prompt = f'{question} ? (y/n): '
@@ -11,9 +13,10 @@ def yesno_second_packet(question):
         return True
     return False
 
+
 def copy_input_packets():
-    copy_packet_1= ""
-    copy_packet_2= ""
+    copy_packet_1 = ""
+    copy_packet_2 = ""
     print(
         " ********************************************************************** ")
     print(

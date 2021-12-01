@@ -5,7 +5,7 @@ import argparse
 from time import sleep
 
 import util.dns
-import util.packet
+import util.packet_input
 import util.ripe_atlas
 import util.trace
 import util.vis
@@ -72,7 +72,7 @@ def main(args):
         packet_1, annotation_1, packet_2, annotation_2 = util.dns.get_dns_packets()
     if args.get("packet"):
         do_traceroute = True
-        packet_1, packet_2 = util.packet.copy_input_packets()
+        packet_1, packet_2 = util.packet_input.copy_input_packets()
     if do_traceroute:
         was_successful, measurement_path = util.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1,
@@ -80,9 +80,10 @@ def main(args):
             annotation_1=annotation_1, annotation_2=annotation_2,
             just_graph=just_graph)
     if args.get("ripe"):
-        was_successful, measurement_path = util.ripe_atlas.download_from_atlas(probe_id=args["domain"])
+        was_successful, measurement_path = util.ripe_atlas.download_from_atlas(
+            probe_id=args["domain"])
     if args.get("file"):
-        was_successful= True
+        was_successful = True
         measurement_path = args["file"]
     if was_successful:
         if util.vis.vis(measurement_path, attach_jscss):

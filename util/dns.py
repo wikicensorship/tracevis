@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
 

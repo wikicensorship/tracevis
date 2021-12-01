@@ -9,13 +9,16 @@ from datetime import datetime
 from socket import socket
 from time import sleep
 
-from scapy.arch import get_if_addr
-from scapy.interfaces import conf
+
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import sr1
 from scapy.volatile import RandShort
+
 from util.traceroute_struct import Traceroute
+
+#from scapy.arch import get_if_addr
+#from scapy.interfaces import conf
 
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
@@ -123,7 +126,8 @@ def initialize_first_nodes(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto):
-    source_address = get_if_addr(conf.iface)
+    # source_address = get_if_addr(conf.iface) #todo: xhdix
+    source_address = LOCALHOST
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
         measurement_data[0].append(
@@ -180,7 +184,7 @@ def save_measurement_data(request_ips, measurement_name):
 
 
 def trace_route(
-        ip_list, request_packet_1, request_packet_2: str="", name_prefix: str = "",
+        ip_list, request_packet_1, request_packet_2: str = "", name_prefix: str = "",
         annotation_1: str = "", annotation_2: str = "", just_graph: bool = False):
     measurement_name = ""
     request_packets = []
@@ -213,8 +217,7 @@ def trace_route(
     print("− · − · −     − · − · −     − · − · −     − · − · −")
     while repeat_all_steps < 3:
         repeat_all_steps += 1
-        previous_node_ids = [
-            initialize_first_nodes(request_ips), initialize_first_nodes(request_ips)]
+        previous_node_ids = initialize_first_nodes(request_ips)
         for current_ttl in range(1, 30):
             if just_graph and are_equal(request_ips, previous_node_ids):
                 break

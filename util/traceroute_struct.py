@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 
 
@@ -41,8 +42,8 @@ class Traceroute:
                 "size": size,
                 "ttl": ttl
             })
-    
-    def set_endtime(self,endtime):
+
+    def set_endtime(self, endtime):
         self.endtime = endtime
 
     def json(self):

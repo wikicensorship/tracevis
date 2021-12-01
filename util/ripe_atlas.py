@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-from __future__ import absolute_import, unicode_literals
 
-import ipaddress
 import json
 import urllib.request
 from datetime import datetime
@@ -22,7 +20,8 @@ MEASUREMENT_IDS = [
     5151  # topology4.dyndns.atlas.ripe.net
 ]
 
-def download_from_atlas(probe_id, prefix:str=""):
+
+def download_from_atlas(probe_id, prefix: str = ""):
     all_measurements = []
     measurement_name = ""
     was_successful = False
@@ -41,11 +40,11 @@ def download_from_atlas(probe_id, prefix:str=""):
         for measurement_id in MEASUREMENT_IDS:
             print(
                 "downloading measurement ID: " + str(measurement_id))
-            requset_url = ("https://atlas.ripe.net/api/v2/measurements/" 
-                + str(measurement_id)
-                + "/latest/?format=json&probe_ids="
-                + str(probe_id)
-            )
+            requset_url = ("https://atlas.ripe.net/api/v2/measurements/"
+                           + str(measurement_id)
+                           + "/latest/?format=json&probe_ids="
+                           + str(probe_id)
+                           )
             with urllib.request.urlopen(requset_url) as url:
                 downloaded_data = json.loads(url.read().decode())
             if downloaded_data is not None:
@@ -54,7 +53,7 @@ def download_from_atlas(probe_id, prefix:str=""):
                     "downloading measurement ID " + str(measurement_id) + " finished.")
             else:
                 print("failed to download measurement ID: "
-                    + str(measurement_id))
+                      + str(measurement_id))
             sleep(3)
             print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
         print(
@@ -64,7 +63,8 @@ def download_from_atlas(probe_id, prefix:str=""):
         measurement_path = OUTPUT_DIR + measurement_name + ".json"
         print("saving json file... to: " + measurement_path)
         with open((measurement_path), 'w', encoding='utf-8') as json_file:
-            json.dump(all_measurements, json_file, ensure_ascii=False, indent=4)
+            json.dump(all_measurements, json_file,
+                      ensure_ascii=False, indent=4)
         print("saved: " + measurement_path)
         was_successful = True
         print(

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import absolute_import, unicode_literals
 
 import ipaddress
 import json
@@ -21,7 +20,8 @@ REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", 
                   "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
 
 
-TEMPLATE_PATH = os.path.dirname(__file__) + "/templates/template_offline.tmplt"
+TEMPLATE_PATH = os.path.dirname(
+    __file__) + "/templates/template_offline.html.jinja"
 
 multi_directed_graph = nx.MultiDiGraph()
 
