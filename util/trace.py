@@ -187,8 +187,8 @@ def save_measurement_data(request_ips, measurement_name):
 
 def trace_route(
         ip_list, request_packet_1, request_packet_2: str = "", name_prefix: str = "",
-        annotation_1: str = "", annotation_2: str = "", just_graph: bool = False,
-        max_ttl: int=MAX_TTL):
+        annotation_1: str = "", annotation_2: str = "", continue_to_max_ttl: bool = False,
+        max_ttl: int = MAX_TTL):
     measurement_name = ""
     request_packets = []
     was_successful = False
@@ -222,7 +222,7 @@ def trace_route(
         repeat_all_steps += 1
         previous_node_ids = initialize_first_nodes(request_ips)
         for current_ttl in range(1, max_ttl):
-            if just_graph and are_equal(request_ips, previous_node_ids):
+            if not continue_to_max_ttl and are_equal(request_ips, previous_node_ids):
                 break
             ip_steps = 0
             access_block_steps = 0
@@ -232,7 +232,7 @@ def trace_route(
                 not_yet_destination = not (already_reached_destination(
                     previous_node_ids[access_block_steps][ip_steps],
                     request_ips[ip_steps]))
-                if just_graph:
+                if not continue_to_max_ttl:
                     if not_yet_destination:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                             request_packets[access_block_steps], request_ips[ip_steps],

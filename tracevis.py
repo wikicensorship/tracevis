@@ -17,11 +17,13 @@ def get_args():
                         help="prefix for the graph file name")
     parser.add_argument('-i', '--ips', type=str,
                         help="add comma-separated IPs (up to 6)")
-    parser.add_argument('-d', '--domain', type=str,
+    parser.add_argument('--domain1', type=str,
+                        help="change the default accessible domain name")
+    parser.add_argument('-d', '--domain2', type=str,
                         help="change the default blocked domain name")
-    parser.add_argument('-g', '--graph', action='store_true',
-                        help="no further TTL advance after reaching the endpoint")
-    parser.add_argument('-m', '--maxttl', type=str,
+    parser.add_argument('-c', '--continue', action='store_true',
+                        help="continue for further TTL advance after reaching the endpoint (up to max ttl)")
+    parser.add_argument('-m', '--maxttl', type=int,
                         help="set max TTL (up to 255)")
     parser.add_argument('--dns', action='store_true',
                         help="send DNS packet")
@@ -29,9 +31,9 @@ def get_args():
                         help="attach VisJS javascript and CSS to the HTML file (work offline)")
     parser.add_argument('-p', '--packet', action='store_true',
                         help="receive packets from the IP layer via the terminal input and send")
-    parser.add_argument('--annotation1', action='store_true',
+    parser.add_argument('--annot1', action='store_true',
                         help="annotation for the first packets")
-    parser.add_argument('--annotation2', action='store_true',
+    parser.add_argument('--annot2', action='store_true',
                         help="annotation for the second packets")
     parser.add_argument('-r', '--ripe', type=str,
                         help="ID of RIPE Atlas probe")
@@ -43,13 +45,15 @@ def get_args():
 
 def main(args):
     name_prefix = ""
-    just_graph = False
+    continue_to_max_ttl = False
     attach_jscss = False
     request_ips = []
     packet_1 = None
     annotation_1 = ""
     packet_2 = None
     annotation_2 = ""
+    blocked_address = ""
+    accessible_address = ""
     do_traceroute = False
     was_successful = False
     measurement_path = ""
@@ -59,19 +63,22 @@ def main(args):
         name_prefix = "dns"
     if args.get("ips"):
         request_ips = args["ips"].split(',')
-    if args.get("domain"):
-        blocked_address = args["domain"]
-    if args.get("graph"):
-        just_graph = True
+    if args.get("domain1"):
+        accessible_address = args["domain1"]
+    if args.get("domain2"):
+        blocked_address = args["domain2"]
+    if args.get("continue"):
+        continue_to_max_ttl = True
     if args.get("attach"):
         attach_jscss = True
-    if args.get("annotation1"):
-        annotation_1 = args["annotation1"]
-    if args.get("annotation2"):
-        annotation_2 = args["annotation2"]
+    if args.get("annot1"):
+        annotation_1 = args["annot1"]
+    if args.get("annot2"):
+        annotation_2 = args["annot2"]
     if args.get("dns"):
         do_traceroute = True
-        packet_1, annotation_1, packet_2, annotation_2 = util.dns.get_dns_packets()
+        packet_1, annotation_1, packet_2, annotation_2 = util.dns.get_dns_packets(
+            blocked_address=blocked_address, accessible_address=accessible_address)
     if args.get("packet"):
         do_traceroute = True
         packet_1, packet_2 = util.packet_input.copy_input_packets()
@@ -80,7 +87,7 @@ def main(args):
             ip_list=request_ips, request_packet_1=packet_1,
             request_packet_2=packet_2, name_prefix=name_prefix,
             annotation_1=annotation_1, annotation_2=annotation_2,
-            just_graph=just_graph)
+            continue_to_max_ttl=continue_to_max_ttl)
     if args.get("ripe"):
         was_successful, measurement_path = util.ripe_atlas.download_from_atlas(
             probe_id=args["ripe"])
