@@ -22,7 +22,7 @@ def get_args():
     parser.add_argument('-d', '--domain2', type=str,
                         help="change the default blocked domain name")
     parser.add_argument('-c', '--continue', action='store_true',
-                        help="continue for further TTL advance after reaching the endpoint (up to max ttl)")
+                        help="further TTL advance after reaching the endpoint (up to max ttl)")
     parser.add_argument('-m', '--maxttl', type=int,
                         help="set max TTL (up to 255)")
     parser.add_argument('--dns', action='store_true',
