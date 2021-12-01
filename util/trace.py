@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from socket import socket
 from time import sleep
+from scapy.arch.windows.structures import MAX_ADAPTER_ADDRESS_LENGTH
 
 
 from scapy.layers.dns import DNS
@@ -23,6 +24,7 @@ from util.traceroute_struct import Traceroute
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 TIMEOUT = 1
+MAX_TTL = 50
 have_2_packet = False
 measurement_data = [[], []]
 OUTPUT_DIR = "./output/"
@@ -185,7 +187,8 @@ def save_measurement_data(request_ips, measurement_name):
 
 def trace_route(
         ip_list, request_packet_1, request_packet_2: str = "", name_prefix: str = "",
-        annotation_1: str = "", annotation_2: str = "", just_graph: bool = False):
+        annotation_1: str = "", annotation_2: str = "", just_graph: bool = False,
+        max_ttl: int=MAX_TTL):
     measurement_name = ""
     request_packets = []
     was_successful = False
@@ -218,7 +221,7 @@ def trace_route(
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = initialize_first_nodes(request_ips)
-        for current_ttl in range(1, 30):
+        for current_ttl in range(1, max_ttl):
             if just_graph and are_equal(request_ips, previous_node_ids):
                 break
             ip_steps = 0

@@ -21,6 +21,8 @@ def get_args():
                         help="change the default blocked domain name")
     parser.add_argument('-g', '--graph', action='store_true',
                         help="no further TTL advance after reaching the endpoint")
+    parser.add_argument('-m', '--maxttl', type=str,
+                        help="set max TTL (up to 255)")
     parser.add_argument('--dns', action='store_true',
                         help="send DNS packet")
     parser.add_argument('-a', '--attach', action='store_true',
