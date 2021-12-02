@@ -8,8 +8,6 @@ import time
 from datetime import datetime
 from socket import socket
 from time import sleep
-from scapy.arch.windows.structures import MAX_ADAPTER_ADDRESS_LENGTH
-
 
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
