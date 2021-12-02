@@ -51,7 +51,7 @@ def visualize(previous_node_id, current_node_id,
         multi_directed_graph.add_node(current_node_id,
                                       label=current_node_label, color=device_color,
                                       title=current_node_title)
-    multi_directed_graph.add_edge(previous_node_id, current_node_id, label=current_edge_label,
+    multi_directed_graph.add_edge(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 

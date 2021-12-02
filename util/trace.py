@@ -163,6 +163,9 @@ def get_proto(request_packets):
     else:
         return packet_1_proto, ""
 
+def clean_needed():
+    pass
+
 
 def save_measurement_data(request_ips, measurement_name):
     end_time = int(datetime.utcnow().timestamp())
@@ -221,54 +224,65 @@ def trace_route(
         previous_node_ids = initialize_first_nodes(request_ips)
         for current_ttl in range(1, max_ttl):
             if not continue_to_max_ttl and are_equal(request_ips, previous_node_ids):
-                break
-            ip_steps = 0
-            access_block_steps = 0
-            print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-            while ip_steps < len(request_ips):
-                sleep_time = SLEEP_TIME
-                not_yet_destination = not (already_reached_destination(
-                    previous_node_ids[access_block_steps][ip_steps],
-                    request_ips[ip_steps]))
-                if not continue_to_max_ttl:
-                    if not_yet_destination:
+                ip_steps = 0
+                access_block_steps = 0
+                while ip_steps < len(request_ips):
+                    # to avoid confusing the order of results when we have already reached our destination
+                    measurement_data[access_block_steps][ip_steps].add_hop(
+                        current_ttl, "", 0, 0, 0
+                    )
+                    ip_steps += 1
+                    if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
+                        ip_steps = 0
+                        access_block_steps = 1
+            else:
+                ip_steps = 0
+                access_block_steps = 0
+                print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+                while ip_steps < len(request_ips):
+                    sleep_time = SLEEP_TIME
+                    not_yet_destination = not (already_reached_destination(
+                        previous_node_ids[access_block_steps][ip_steps],
+                        request_ips[ip_steps]))
+                    if not continue_to_max_ttl:
+                        if not_yet_destination:
+                            answer_ip, elapsed_ms, packet_size, req_answer_ttl = send_packet(
+                                request_packets[access_block_steps], request_ips[ip_steps],
+                                current_ttl)
+                            measurement_data[access_block_steps][ip_steps].add_hop(
+                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl
+                            )
+                        else:
+                            sleep_time = 0
+                            # to avoid confusing the order of results when we have already reached our destination
+                            measurement_data[access_block_steps][ip_steps].add_hop(
+                                current_ttl, "***", 0, 0, 0
+                            )
+                    else:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                             request_packets[access_block_steps], request_ips[ip_steps],
                             current_ttl)
                         measurement_data[access_block_steps][ip_steps].add_hop(
                             current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl
                         )
-                    else:
-                        sleep_time = 0
-                        # to avoid confusing the order of results when we have already reached our destination
-                        measurement_data[access_block_steps][ip_steps].add_hop(
-                            current_ttl, "***", 0, 0, 0
-                        )
-                else:
-                    answer_ip, elapsed_ms, packet_size, req_answer_ttl = send_packet(
-                        request_packets[access_block_steps], request_ips[ip_steps],
-                        current_ttl)
-                    measurement_data[access_block_steps][ip_steps].add_hop(
-                        current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl
-                    )
-                if not_yet_destination:
-                    if answer_ip == "***":
-                        sleep_time = 0
-                    previous_node_ids[access_block_steps][ip_steps] = answer_ip
-                print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
-                sleep(sleep_time)
-                ip_steps += 1
-                if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
-                    ip_steps = 0
-                    access_block_steps = 1
-                    print(
-                        " ********************************************************************** ")
-            print(
-                " ********************************************************************** ")
-            print(
-                " ********************************************************************** ")
-            print(
-                " ********************************************************************** ")
+                    if not_yet_destination:
+                        if answer_ip == "***":
+                            sleep_time = 0
+                        previous_node_ids[access_block_steps][ip_steps] = answer_ip
+                    print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+                    sleep(sleep_time)
+                    ip_steps += 1
+                    if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
+                        ip_steps = 0
+                        access_block_steps = 1
+                        print(
+                            " ********************************************************************** ")
+                print(
+                    " ********************************************************************** ")
+                print(
+                    " ********************************************************************** ")
+                print(
+                    " ********************************************************************** ")
     was_successful = True
     print("saving measurement data...")
     data_path = save_measurement_data(request_ips, measurement_name)

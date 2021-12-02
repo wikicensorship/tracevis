@@ -35,6 +35,10 @@ class Traceroute:
             self.result[hop - 1]["result"].append({
                 "x": "*",
             })
+        elif rtt == 0:
+            self.result[hop - 1]["result"].append({
+                "x": "-",
+            })
         else:
             self.result[hop - 1]["result"].append({
                 "from": from_ip,
