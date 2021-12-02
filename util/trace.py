@@ -240,6 +240,10 @@ def trace_route(
                         )
                     else:
                         sleep_time = 0
+                        # to avoid confusing the order of results when we have already reached our destination
+                        measurement_data[access_block_steps][ip_steps].add_hop(
+                            current_ttl, "***", 0, 0, 0
+                        )
                 else:
                     answer_ip, elapsed_ms, packet_size, req_answer_ttl = send_packet(
                         request_packets[access_block_steps], request_ips[ip_steps],
