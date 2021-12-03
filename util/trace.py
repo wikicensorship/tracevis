@@ -45,11 +45,12 @@ def parse_packet(req_answer, current_ttl, elapsed_ms):
               + "   back-ttl: " + str(backttl))
         answer_summary = req_answer.summary()
         print("      " + answer_summary)
-        print("· − · · · rtt: " + str(elapsed_ms)+ "ms · · · − · ")
+        print("· − · · · rtt: " + str(elapsed_ms) + "ms · · · − · ")
         return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
     else:
         print("              *** no response *** ")
-        print("· − · · · rtt: " + str(elapsed_ms) + "ms · · · · · · · · timeout ")
+        print("· − · · · rtt: " + str(elapsed_ms) +
+              "ms · · · · · · · · timeout ")
         return "***", elapsed_ms, 0, 0, "*"
 
 
