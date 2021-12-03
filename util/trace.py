@@ -167,15 +167,19 @@ def clean_needed():
     pass
 
 
-def save_measurement_data(request_ips, measurement_name):
+def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
     end_time = int(datetime.utcnow().timestamp())
     measurement_data_json = []
     ip_steps = 0
     while ip_steps < len(request_ips):
         measurement_data[0][ip_steps].set_endtime(end_time)
+        if not continue_to_max_ttl:
+            measurement_data[0][ip_steps].clean_extra_result()
         measurement_data_json.append(measurement_data[0][ip_steps])
         if have_2_packet:
             measurement_data[1][ip_steps].set_endtime(end_time)
+            if not continue_to_max_ttl:
+                measurement_data[1][ip_steps].clean_extra_result()
             measurement_data_json.append(measurement_data[1][ip_steps])
         ip_steps += 1
     data_path = OUTPUT_DIR + measurement_name + ".json"
@@ -285,6 +289,6 @@ def trace_route(
                     " ********************************************************************** ")
     was_successful = True
     print("saving measurement data...")
-    data_path = save_measurement_data(request_ips, measurement_name)
+    data_path = save_measurement_data(request_ips, measurement_name, continue_to_max_ttl)
     print("· · · − · −     · · · − · −     · · · − · −     · · · − · −")
     return(was_successful, data_path)

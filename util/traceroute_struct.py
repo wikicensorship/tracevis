@@ -50,6 +50,20 @@ class Traceroute:
     def set_endtime(self, endtime):
         self.endtime = endtime
 
+    def clean_extra_result(self):
+        result_index = 0
+        for try_step in self.result:  # will be up to 255
+            results = try_step["result"]
+            repeat_steps = 0
+            for result in results:  # will be up to 3
+                if "x" in result.keys():
+                    if '-' == result["x"]:
+                        repeat_steps += 1
+            if repeat_steps == 3:
+                del self.result[result_index:]
+                break
+            result_index += 1
+
     def json(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           indent=4)
