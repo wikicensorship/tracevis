@@ -5,19 +5,44 @@ traceroute is a research project whose main goal is to find middleboxes. Where a
 
 ## 
 
-Install Python dependencies:
+##### Install Python dependencies:
 
 ```sh
 python3 -m pip install -r requirements.txt
 ```
 
-Run default DNS test:
+##### Default DNS trace:
 
 ```sh
 python3 ./tracevis.py --dns
 ```
 
-Examples:
+##### Packet trace:
+
+```sh
+python3 ./tracevis.py --packet
+```
+
+##### Download traceroute data from a RIPE Atlas probe:
+
+```sh
+python3 ./tracevis.py --ripe [probe-id]
+```
+
+##### Visualize a json file:
+
+```sh
+python3 ./tracevis.py --file ./path/to/file.json
+```
+
+##### See the help message: 
+
+```sh
+python3 ./tracevis.py -h
+```
+##
+
+#### Examples:
 
 ![example graph](https://user-images.githubusercontent.com/12384263/144353391-b7add54f-ef8b-48e0-988f-8c64b95dca76.png)
 
