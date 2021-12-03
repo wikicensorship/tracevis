@@ -1,7 +1,7 @@
-# tracevis
+# TraceVis
 Traceroute with any packet. Visualize the routes. Discover Middleboxes and Firewalls
-
-traceroute is a research project whose main goal is to find middleboxes. Where a packet is tampered with or blocked. This tool also has other features such as downloading and visualizing traceroute data from RIPE Atlas probes.
+##
+TraceVis is a research project whose main goal is to find middleboxes. Where a packet is tampered with or blocked. This tool also has other features such as downloading and visualizing traceroute data from RIPE Atlas probes.
 
 ## 
 
