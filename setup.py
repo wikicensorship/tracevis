@@ -1,9 +1,10 @@
 
 from setuptools import setup, find_packages
+from util._version import __version__
 
 setup(
     name="tracevis",
-    version= 0.1,
+    version= __version__,
     packages=find_packages(),
     scripts=["tracevis.py"],
     install_requires=['scapy', 'pyvis'],
@@ -26,9 +27,4 @@ as downloading and visualizing traceroute data from RIPE Atlas probes.
     license="The Unlicense",
     keywords="visualization dns packets network graphs packet ripe traceroute measurements censorship ripe-atlas ripe-ncc packet-tracer traceview middlebox firewall censorship",
     url="https://github.com/wikicensorship/tracevis",
-    entry_points={
-        'console_scripts': [
-            'tracevis = tracevis:main',
-        ]
-    }
 )
