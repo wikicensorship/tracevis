@@ -45,9 +45,11 @@ def parse_packet(req_answer, current_ttl, elapsed_ms):
               + "   back-ttl: " + str(backttl))
         answer_summary = req_answer.summary()
         print("      " + answer_summary)
+        print("· − · · · rtt: " + str(elapsed_ms)+ "ms · · · − · ")
         return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
     else:
-        print(" *** no response *** ")
+        print("              *** no response *** ")
+        print("· − · · · rtt: " + str(elapsed_ms) + "ms · · · · · · · · timeout ")
         return "***", elapsed_ms, 0, 0, "*"
 
 
@@ -164,9 +166,6 @@ def get_proto(request_packets):
     else:
         return packet_1_proto, ""
 
-def clean_needed():
-    pass
-
 
 def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
     end_time = int(datetime.utcnow().timestamp())
@@ -234,7 +233,7 @@ def trace_route(
                 while ip_steps < len(request_ips):
                     # to avoid confusing the order of results when we have already reached our destination
                     measurement_data[access_block_steps][ip_steps].add_hop(
-                        current_ttl, "", 0, 0, 0,""
+                        current_ttl, "", 0, 0, 0, ""
                     )
                     ip_steps += 1
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
@@ -261,7 +260,7 @@ def trace_route(
                             sleep_time = 0
                             # to avoid confusing the order of results when we have already reached our destination
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, "", 0, 0, 0,""
+                                current_ttl, "", 0, 0, 0, ""
                             )
                     else:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
@@ -274,7 +273,8 @@ def trace_route(
                         if answer_ip == "***":
                             sleep_time = 0
                         previous_node_ids[access_block_steps][ip_steps] = answer_ip
-                    print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+                    print(
+                        " · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
                     sleep(sleep_time)
                     ip_steps += 1
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
@@ -290,6 +290,7 @@ def trace_route(
                     " ********************************************************************** ")
     was_successful = True
     print("saving measurement data...")
-    data_path = save_measurement_data(request_ips, measurement_name, continue_to_max_ttl)
+    data_path = save_measurement_data(
+        request_ips, measurement_name, continue_to_max_ttl)
     print("· · · − · −     · · · − · −     · · · − · −     · · · − · −")
     return(was_successful, data_path)
