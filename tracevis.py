@@ -46,6 +46,8 @@ def get_args():
                         help="ID of RIPE Atlas probe")
     parser.add_argument('-f', '--file', type=str,
                         help=" open a measurement file")
+    parser.add_argument('-l', '--label', type=str,
+                        help="set edge label: none, rtt, backttl. (default: backttl)")
     args = parser.parse_args()
     return args
 
@@ -66,6 +68,7 @@ def main(args):
     do_traceroute = False
     was_successful = False
     measurement_path = ""
+    edge_lable = "backttl"
     if args.get("name"):
         name_prefix = args["name"]
     if args.get("ips"):
@@ -77,7 +80,7 @@ def main(args):
     if args.get("continue"):
         continue_to_max_ttl = True
     if args.get("maxttl"):
-        max_ttl =  args["maxttl"]
+        max_ttl = args["maxttl"]
     if args.get("timeout"):
         timeout = args["timeout"]
     if args.get("attach"):
@@ -86,13 +89,15 @@ def main(args):
         annotation_1 = args["annot1"]
     if args.get("annot2"):
         annotation_2 = args["annot2"]
+    if args.get("label"):
+        edge_lable = args["label"].lower()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         packet_1, annotation_1, packet_2, annotation_2 = util.dns.get_dns_packets(
             blocked_address=blocked_address, accessible_address=accessible_address,
             dns_over_tcp=(args["dnstcp"]))
-        if len(request_ips)  == 0:
-            request_ips = ["1.1.1.1", "8.8.8.8", "9.9.9.9"] 
+        if len(request_ips) == 0:
+            request_ips = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
     if args.get("packet"):
         do_traceroute = True
         packet_1, packet_2 = util.packet_input.copy_input_packets()
@@ -110,7 +115,9 @@ def main(args):
         was_successful = True
         measurement_path = args["file"]
     if was_successful:
-        if util.vis.vis(measurement_path, attach_jscss):
+        if util.vis.vis(
+                measurement_path=measurement_path, attach_jscss=attach_jscss,
+                edge_lable=edge_lable):
             print("finished.")
 
 

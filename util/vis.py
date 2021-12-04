@@ -51,7 +51,7 @@ def visualize(previous_node_id, current_node_id,
         multi_directed_graph.add_node(current_node_id,
                                       label=current_node_label, color=device_color,
                                       title=current_node_title)
-    multi_directed_graph.add_edge(previous_node_id, current_node_id,
+    multi_directed_graph.add_edge(previous_node_id, current_node_id, label=current_edge_label,
                                   color=requset_color, title=current_edge_title)
 
 
@@ -77,8 +77,8 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
 
 def already_reached_destination(previous_node_id, current_node_ip):
     if previous_node_id in {
-        str(current_node_ip),
-        ("middlebox" + str(current_node_ip) + "x")}:
+            str(current_node_ip),
+            ("middlebox" + str(current_node_ip) + "x")}:
         return True
     else:
         return False
@@ -105,7 +105,7 @@ def save_measurement_graph(graph_name, attach_jscss):
     print("saved: " + graph_path)
 
 
-def vis(measurement_path, attach_jscss):
+def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
     all_measurements = []
     was_successful = False
     with open(measurement_path) as json_file:
@@ -135,29 +135,30 @@ def vis(measurement_path, attach_jscss):
                 if not_yet_destination:
                     if "late" in result.keys():
                         skip_next = True
-                    current_node_label = ""
-                    current_edge_title = ""
+                    current_node_label = "***"
+                    current_edge_title = "***"
                     current_edge_label = ""
                     current_node_id = "0"
+                    elapsed_ms = "*"
+                    packet_size = "*"
+                    backttl = "*"
+                    device_color = NO_RESPONSE_COLOR
                     if 'x' in result.keys():
                         current_node_id = (
                             "unknown" + previous_node_ids[repeat_steps] + "x" + current_ttl_str)
-                        current_node_label = "***"
-                        current_edge_title = "***"
-                        current_edge_label = "*"
-                        device_color = NO_RESPONSE_COLOR
-                        elapsed_ms = "*"
-                        packet_size = "*"
+                        if edge_lable != "none":
+                            current_edge_label = "*"
                     else:
                         answer_ip = result["from"]
                         backttl, device_color = parse_ttl(
                             result["ttl"], current_ttl)
                         if "rtt" in result.keys():
                             elapsed_ms = result["rtt"]
-                            current_edge_label = str(format(elapsed_ms, '.3f'))
-                        else:
-                            elapsed_ms = "*"
-                            current_edge_label = "*"
+                        if edge_lable == "rtt":
+                            if elapsed_ms != "*":
+                                current_edge_label = format(elapsed_ms, '.3f')
+                        elif edge_lable == "backttl":
+                            current_edge_label = str(backttl)
                         current_node_id = str(
                             int(ipaddress.IPv4Address(answer_ip)))
                         if device_color == MIDDLEBOX_COLOR:
@@ -168,12 +169,13 @@ def vis(measurement_path, attach_jscss):
                         packet_size = result["size"]
                     current_edge_title = styled_tooltips(
                         REQUEST_COLORS[measurement_steps], current_ttl_str,
-                        current_edge_title, dst_addr, elapsed_ms,
+                        str(backttl), dst_addr, elapsed_ms,
                         packet_size, (repeat_steps + 1))
                     visualize(
                         previous_node_ids[repeat_steps], current_node_id,
                         current_node_label, DEVICE_NAME[device_color], device_color,
-                        current_edge_title, REQUEST_COLORS[measurement_steps], current_edge_label
+                        current_edge_title, REQUEST_COLORS[measurement_steps],
+                        current_edge_label
                     )
                     previous_node_ids[repeat_steps] = current_node_id
                 repeat_steps += 1
