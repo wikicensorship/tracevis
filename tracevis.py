@@ -72,7 +72,7 @@ def main(args):
     measurement_path = ""
     edge_lable = "backttl"
     if args.get("name"):
-        name_prefix = args["name"]
+        name_prefix = args["name"] + "-"
     if args.get("ips"):
         request_ips = args["ips"].split(',')
     if args.get("domain1"):
@@ -95,6 +95,7 @@ def main(args):
         edge_lable = args["label"].lower()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
+        name_prefix = name_prefix + "dns"
         packet_1, annotation_1, packet_2, annotation_2 = util.dns.get_dns_packets(
             blocked_address=blocked_address, accessible_address=accessible_address,
             dns_over_tcp=(args["dnstcp"]))
@@ -102,6 +103,7 @@ def main(args):
             request_ips = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
     if args.get("packet"):
         do_traceroute = True
+        name_prefix = name_prefix + "packet"
         packet_1, packet_2 = util.packet_input.copy_input_packets()
     if do_traceroute:
         was_successful, measurement_path = util.trace.trace_route(
@@ -111,6 +113,7 @@ def main(args):
             annotation_1=annotation_1, annotation_2=annotation_2,
             continue_to_max_ttl=continue_to_max_ttl)
     if args.get("ripe"):
+        name_prefix = name_prefix + "ripe-atlas"
         was_successful, measurement_path = util.ripe_atlas.download_from_atlas(
             probe_id=args["ripe"])
     if args.get("file"):
