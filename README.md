@@ -54,6 +54,8 @@ python3 ./tracevis.py -h
 
 ![example graph](https://user-images.githubusercontent.com/12384263/137825263-b5bc658e-a5af-47e3-9839-d1c75fa6be1b.png)
 
+![example graph](https://user-images.githubusercontent.com/12384263/144697205-471b83a1-b98b-4b9f-8860-d8649a3d3e90.png)
+
 ![example graph](https://user-images.githubusercontent.com/12384263/144353412-37214aaa-040d-4b1f-a4b5-b812b96b1521.png)
 
 
