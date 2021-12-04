@@ -145,7 +145,7 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                     device_color = NO_RESPONSE_COLOR
                     if 'x' in result.keys():
                         current_node_id = (
-                            "unknown" + previous_node_ids[repeat_steps] + "x" + current_ttl_str)
+                            "unknown" + previous_node_ids[repeat_steps] + "x")
                         if edge_lable != "none":
                             current_edge_label = "*"
                     else:
