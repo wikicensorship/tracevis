@@ -14,7 +14,7 @@ WINDOWS_COLOR = "blue"
 LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
-DEVICE_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
+DEVICE_OS_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
                LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
 REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
                   "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
@@ -56,7 +56,7 @@ def visualize(previous_node_id, current_node_id,
 
 
 def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip,
-                    elapsed_ms, packet_size, repeat_all_steps):
+                    elapsed_ms, packet_size, repeat_all_steps, device_os_name):
     time_size = "*"
     elapsed_ms_str = "*"
     packet_size_str = "*"
@@ -72,6 +72,7 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
             + "<br/>Time: " + elapsed_ms_str
             + "<br/>Size: " + packet_size_str
             + "<br/>Time/Size: " + time_size
+            + "<br/>OS: " + device_os_name
             + "<br/>Repeat step: " + str(repeat_all_steps) + "</pre>")
 
 
@@ -170,10 +171,10 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                     current_edge_title = styled_tooltips(
                         REQUEST_COLORS[measurement_steps], current_ttl_str,
                         str(backttl), dst_addr, elapsed_ms,
-                        packet_size, (repeat_steps + 1))
+                        packet_size, (repeat_steps + 1), DEVICE_OS_NAME[device_color])
                     visualize(
                         previous_node_ids[repeat_steps], current_node_id,
-                        current_node_label, DEVICE_NAME[device_color], device_color,
+                        current_node_label, DEVICE_OS_NAME[device_color], device_color,
                         current_edge_title, REQUEST_COLORS[measurement_steps],
                         current_edge_label
                     )
