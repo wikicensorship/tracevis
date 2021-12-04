@@ -21,8 +21,6 @@ from util.traceroute_struct import Traceroute
 
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
-TIMEOUT = 1
-MAX_TTL = 50
 have_2_packet = False
 measurement_data = [[], []]
 OUTPUT_DIR = "./output/"
@@ -71,7 +69,7 @@ def ephemeral_port_reserve():
                 return sockname[1]
 
 
-def send_packet(request_packet, request_ip, current_ttl):
+def send_packet(request_packet, request_ip, current_ttl, timeout):
     this_request = request_packet
     this_request[IP].dst = request_ip
     this_request[IP].ttl = current_ttl
@@ -90,7 +88,7 @@ def send_packet(request_packet, request_ip, current_ttl):
           + "   ip.dst: " + this_request[IP].dst
           + "   ip.ttl: " + str(current_ttl))
     start_time = time.perf_counter()
-    req_answer = sr1(this_request, verbose=0, timeout=TIMEOUT)
+    req_answer = sr1(this_request, verbose=0, timeout=timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
     return parse_packet(req_answer, current_ttl, elapsed_ms)
@@ -192,9 +190,11 @@ def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
 
 
 def trace_route(
-        ip_list, request_packet_1, request_packet_2: str = "", name_prefix: str = "",
-        annotation_1: str = "", annotation_2: str = "", continue_to_max_ttl: bool = False,
-        max_ttl: int = MAX_TTL):
+        ip_list, request_packet_1, max_ttl: int, timeout: int,
+        request_packet_2: str = "", name_prefix: str = "",
+        annotation_1: str = "", annotation_2: str = "",
+        continue_to_max_ttl: bool = False,
+):
     measurement_name = ""
     request_packets = []
     was_successful = False
@@ -227,7 +227,7 @@ def trace_route(
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = initialize_first_nodes(request_ips)
-        for current_ttl in range(1, max_ttl):
+        for current_ttl in range(1, max_ttl + 1):
             if not continue_to_max_ttl and are_equal(request_ips, previous_node_ids):
                 ip_steps = 0
                 access_block_steps = 0
@@ -253,7 +253,7 @@ def trace_route(
                         if not_yet_destination:
                             answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
                                 request_packets[access_block_steps], request_ips[ip_steps],
-                                current_ttl)
+                                current_ttl, timeout)
                             measurement_data[access_block_steps][ip_steps].add_hop(
                                 current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                             )
@@ -266,7 +266,7 @@ def trace_route(
                     else:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
                             request_packets[access_block_steps], request_ips[ip_steps],
-                            current_ttl)
+                            current_ttl, timeout)
                         measurement_data[access_block_steps][ip_steps].add_hop(
                             current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                         )

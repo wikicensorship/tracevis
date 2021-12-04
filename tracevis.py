@@ -10,6 +10,9 @@ import util.ripe_atlas
 import util.trace
 import util.vis
 
+TIMEOUT = 1
+MAX_TTL = 50
+
 
 def get_args():
     parser = argparse.ArgumentParser(description='trace DNS censorship')
@@ -24,7 +27,9 @@ def get_args():
     parser.add_argument('-c', '--continue', action='store_true',
                         help="further TTL advance after reaching the endpoint (up to max ttl)")
     parser.add_argument('-m', '--maxttl', type=int,
-                        help="set max TTL (up to 255)")
+                        help="set max TTL (up to 255, default: 50)")
+    parser.add_argument('-t', '--timeout', type=int,
+                        help="set timeout in seconds for each request (default: 1 second)")
     parser.add_argument('--dns', action='store_true',
                         help="send simple DNS over UDP packet")
     parser.add_argument('--dnstcp', action='store_true',
@@ -48,6 +53,8 @@ def get_args():
 def main(args):
     name_prefix = ""
     continue_to_max_ttl = False
+    max_ttl = MAX_TTL
+    timeout = TIMEOUT
     attach_jscss = False
     request_ips = []
     packet_1 = None
@@ -69,6 +76,10 @@ def main(args):
         blocked_address = args["domain2"]
     if args.get("continue"):
         continue_to_max_ttl = True
+    if args.get("maxttl"):
+        max_ttl =  args["maxttl"]
+    if args.get("timeout"):
+        timeout = args["timeout"]
     if args.get("attach"):
         attach_jscss = True
     if args.get("annot1"):
@@ -88,6 +99,7 @@ def main(args):
     if do_traceroute:
         was_successful, measurement_path = util.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1,
+            max_ttl=max_ttl, timeout=timeout,
             request_packet_2=packet_2, name_prefix=name_prefix,
             annotation_1=annotation_1, annotation_2=annotation_2,
             continue_to_max_ttl=continue_to_max_ttl)
