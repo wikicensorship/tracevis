@@ -26,7 +26,9 @@ def get_args():
     parser.add_argument('-m', '--maxttl', type=int,
                         help="set max TTL (up to 255)")
     parser.add_argument('--dns', action='store_true',
-                        help="send DNS packet")
+                        help="send simple DNS over UDP packet")
+    parser.add_argument('--dnstcp', action='store_true',
+                        help="send simple DNS over TCP packet")
     parser.add_argument('-a', '--attach', action='store_true',
                         help="attach VisJS javascript and CSS to the HTML file (work offline)")
     parser.add_argument('-p', '--packet', action='store_true',
@@ -58,9 +60,7 @@ def main(args):
     was_successful = False
     measurement_path = ""
     if args.get("name"):
-        name_prefix = args["name"] + "-dns"
-    else:
-        name_prefix = "dns"
+        name_prefix = args["name"]
     if args.get("ips"):
         request_ips = args["ips"].split(',')
     if args.get("domain1"):
@@ -75,10 +75,13 @@ def main(args):
         annotation_1 = args["annot1"]
     if args.get("annot2"):
         annotation_2 = args["annot2"]
-    if args.get("dns"):
+    if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         packet_1, annotation_1, packet_2, annotation_2 = util.dns.get_dns_packets(
-            blocked_address=blocked_address, accessible_address=accessible_address)
+            blocked_address=blocked_address, accessible_address=accessible_address,
+            dns_over_tcp=(args["dnstcp"]))
+        if len(request_ips)  == 0:
+            request_ips = ["1.1.1.1", "8.8.8.8", "9.9.9.9"] 
     if args.get("packet"):
         do_traceroute = True
         packet_1, packet_2 = util.packet_input.copy_input_packets()
