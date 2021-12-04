@@ -15,7 +15,9 @@ MAX_TTL = 50
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='trace DNS censorship')
+    parser = argparse.ArgumentParser(
+        description='Traceroute with any packet. \
+            Visualize the routes. Discover Middleboxes and Firewalls')
     parser.add_argument('-n', '--name', action='store',
                         help="prefix for the graph file name")
     parser.add_argument('-i', '--ips', type=str,
