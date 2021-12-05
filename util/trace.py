@@ -26,7 +26,7 @@ measurement_data = [[], []]
 OUTPUT_DIR = "./output/"
 
 
-def parse_packet(req_answer, current_ttl, elapsed_ms):
+def parse_packet(req_answer, current_ttl, elapsed_ms, ip_id):
     if req_answer is not None:
         backttl = 0
         if req_answer[IP].ttl <= 20:
@@ -44,12 +44,12 @@ def parse_packet(req_answer, current_ttl, elapsed_ms):
         answer_summary = req_answer.summary()
         print("      " + answer_summary)
         print("· − · · · rtt: " + str(elapsed_ms) + "ms · · · − · ")
-        return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
+        return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary, ip_id, req_answer[IP].id
     else:
         print("              *** no response *** ")
         print("· − · · · rtt: " + str(elapsed_ms) +
               "ms · · · · · · · · timeout ")
-        return "***", elapsed_ms, 0, 0, "*"
+        return "***", elapsed_ms, -1, -1, "*", ip_id, -1
 
 
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
@@ -91,7 +91,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout):
     req_answer = sr1(this_request, verbose=0, timeout=timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
-    return parse_packet(req_answer, current_ttl, elapsed_ms)
+    return parse_packet(req_answer, current_ttl, elapsed_ms, this_request[IP].id)
 
 
 def already_reached_destination(previous_node_id, current_node_ip):
@@ -234,7 +234,7 @@ def trace_route(
                 while ip_steps < len(request_ips):
                     # to avoid confusing the order of results when we have already reached our destination
                     measurement_data[access_block_steps][ip_steps].add_hop(
-                        current_ttl, "", 0, 0, 0, ""
+                        current_ttl, "", -1, -1, -1, "", -1, -1
                     )
                     ip_steps += 1
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
@@ -251,24 +251,24 @@ def trace_route(
                         request_ips[ip_steps]))
                     if not continue_to_max_ttl:
                         if not_yet_destination:
-                            answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
+                            answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, s_ip_id, r_ip_id = send_packet(
                                 request_packets[access_block_steps], request_ips[ip_steps],
                                 current_ttl, timeout)
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
+                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, s_ip_id, r_ip_id
                             )
                         else:
                             sleep_time = 0
                             # to avoid confusing the order of results when we have already reached our destination
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, "", 0, 0, 0, ""
+                                current_ttl, "", -1, -1, -1, "", -1, -1
                             )
                     else:
-                        answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
+                        answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, s_ip_id, r_ip_id = send_packet(
                             request_packets[access_block_steps], request_ips[ip_steps],
                             current_ttl, timeout)
                         measurement_data[access_block_steps][ip_steps].add_hop(
-                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
+                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, s_ip_id, r_ip_id
                         )
                     if not_yet_destination:
                         if answer_ip == "***":

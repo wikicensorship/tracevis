@@ -28,7 +28,7 @@ class Traceroute:
         self.timestamp = timestamp
         self.ttr = ttr
 
-    def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary):
+    def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary, s_ip_id, r_ip_id):
         if len(self.result) < hop:
             (self.result).append({"hop": hop, "result": []})
         if rtt == 0:
@@ -38,6 +38,7 @@ class Traceroute:
         elif from_ip == "***":
             self.result[hop - 1]["result"].append({
                 "x": "*",
+                "timeout": rtt,
             })
         else:
             self.result[hop - 1]["result"].append({
@@ -45,7 +46,9 @@ class Traceroute:
                 "rtt": rtt,
                 "size": size,
                 "ttl": ttl,
-                "summary": answer_summary
+                "summary": answer_summary,
+                "s_id": s_ip_id,
+                "r_id": r_ip_id,
             })
 
     def set_endtime(self, endtime):
