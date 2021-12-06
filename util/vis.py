@@ -15,7 +15,7 @@ LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
 DEVICE_OS_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
-               LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
+                  LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
 REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
                   "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
 
@@ -55,8 +55,9 @@ def visualize(previous_node_id, current_node_id,
                                   color=requset_color, title=current_edge_title)
 
 
-def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip,
-                    elapsed_ms, packet_size, repeat_all_steps, device_os_name):
+def styled_tooltips(
+    current_request_colors, current_ttl_str, backttl, request_ip, elapsed_ms,
+    packet_size, repeat_all_steps, device_os_name, annotation):
     time_size = "*"
     elapsed_ms_str = "*"
     packet_size_str = "*"
@@ -69,6 +70,7 @@ def styled_tooltips(current_request_colors, current_ttl_str, backttl, request_ip
             + "\">TTL: " + current_ttl_str
             + "<br/>Back-TTL: " + backttl
             + "<br/>Request to: " + request_ip
+            + "<br/>annotation: " + annotation
             + "<br/>Time: " + elapsed_ms_str
             + "<br/>Size: " + packet_size_str
             + "<br/>Time/Size: " + time_size
@@ -120,6 +122,9 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
         previous_node_ids = initialize_first_nodes(src_addr_id)
         dst_addr = measurement["dst_addr"]
         dst_addr_id = str(int(ipaddress.IPv4Address(dst_addr)))
+        annotation = "-"
+        if "annotation" in measurement.keys():
+            annotation = measurement["annotation"]
         all_results = measurement["result"]
         for try_step in all_results:  # will be up to 255
             current_ttl = try_step["hop"]
@@ -170,8 +175,10 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                         packet_size = result["size"]
                     current_edge_title = styled_tooltips(
                         REQUEST_COLORS[measurement_steps], current_ttl_str,
-                        str(backttl), dst_addr, elapsed_ms,
-                        packet_size, (repeat_steps + 1), DEVICE_OS_NAME[device_color])
+                        str(backttl), dst_addr, elapsed_ms, packet_size,
+                        (repeat_steps + 1), DEVICE_OS_NAME[device_color],
+                        annotation
+                    )
                     visualize(
                         previous_node_ids[repeat_steps], current_node_id,
                         current_node_label, DEVICE_OS_NAME[device_color], device_color,
