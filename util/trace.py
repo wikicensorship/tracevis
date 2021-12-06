@@ -4,6 +4,7 @@ from __future__ import absolute_import, unicode_literals
 import contextlib
 import json
 import os
+import sys
 import time
 from datetime import datetime
 from socket import socket
@@ -188,6 +189,15 @@ def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
     print("saved: " + data_path)
     return data_path
 
+def check_for_permission():
+    try:
+        this_request = IP(
+            dst=LOCALHOST, ttl=0)/TCP(
+            sport=0, dport=53)/DNS()
+        sr1(this_request, verbose=0, timeout=0)
+    except OSError:
+        print("Error: Unable to send a packet with unprivileged user. Please run as root/admin.")
+        sys.exit(1)
 
 def trace_route(
         ip_list, request_packet_1, max_ttl: int, timeout: int,
@@ -195,6 +205,7 @@ def trace_route(
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
 ):
+    check_for_permission()
     measurement_name = ""
     request_packets = []
     was_successful = False
