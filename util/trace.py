@@ -189,6 +189,7 @@ def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
     print("saved: " + data_path)
     return data_path
 
+
 def check_for_permission():
     try:
         this_request = IP(
@@ -198,6 +199,7 @@ def check_for_permission():
     except OSError:
         print("Error: Unable to send a packet with unprivileged user. Please run as root/admin.")
         sys.exit(1)
+
 
 def trace_route(
         ip_list, request_packet_1, max_ttl: int, timeout: int,

@@ -5,7 +5,6 @@ import urllib.request
 from datetime import datetime
 from time import sleep
 
-
 OUTPUT_DIR = "./output/"
 
 MEASUREMENT_IDS = [

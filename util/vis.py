@@ -2,7 +2,6 @@
 
 import ipaddress
 import json
-
 import os
 from time import sleep
 
@@ -14,10 +13,14 @@ WINDOWS_COLOR = "blue"
 LINUX_COLOR = "purple"
 MIDDLEBOX_COLOR = "red"
 NO_RESPONSE_COLOR = "gray"
-DEVICE_OS_NAME = {ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows",
-                  LINUX_COLOR: "Linux", MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"}
-REQUEST_COLORS = ["DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
-                  "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"]
+DEVICE_OS_NAME = {
+    ROUTER_COLOR: "Router", WINDOWS_COLOR: "Windows", LINUX_COLOR: "Linux",
+    MIDDLEBOX_COLOR: "Middlebox", NO_RESPONSE_COLOR: "unknown"
+}
+REQUEST_COLORS = [
+    "DarkTurquoise", "HotPink", "LimeGreen", "Red", "DodgerBlue", "Orange",
+    "MediumSlateBlue", "DarkGoldenrod", "Green", "Brown", "YellowGreen", "Magenta"
+]
 
 
 TEMPLATE_PATH = os.path.dirname(
@@ -56,8 +59,8 @@ def visualize(previous_node_id, current_node_id,
 
 
 def styled_tooltips(
-    current_request_colors, current_ttl_str, backttl, request_ip, elapsed_ms,
-    packet_size, repeat_all_steps, device_os_name, annotation):
+        current_request_colors, current_ttl_str, backttl, request_ip, elapsed_ms,
+        packet_size, repeat_all_steps, device_os_name, annotation):
     time_size = "*"
     elapsed_ms_str = "*"
     packet_size_str = "*"

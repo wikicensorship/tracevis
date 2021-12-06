@@ -7,7 +7,7 @@ DEFAULT_BLOCKED_ADDRESS = "www.twitter.com"
 
 
 def get_dns_packets(blocked_address: str = "", accessible_address: str = "",
-        dns_over_tcp: bool=False):
+                    dns_over_tcp: bool = False):
     if blocked_address == "":
         blocked_address = DEFAULT_BLOCKED_ADDRESS
     if accessible_address == "":
