@@ -193,4 +193,4 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
         measurement_steps += 1
     print("saving measurement graph...")
     save_measurement_graph(measurement_path, attach_jscss)
-    print("· · · − · −     · · · − · −     · · · − · −     · · · − · −")
+    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")

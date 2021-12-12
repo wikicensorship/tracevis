@@ -35,7 +35,7 @@ def download_from_atlas(probe_id, prefix: str = ""):
             " ********************************************************************** ")
         print(
             "downloading data from probe ID: " + str(probe_id))
-        print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+        print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
         for measurement_id in MEASUREMENT_IDS:
             print(
                 "downloading measurement ID: " + str(measurement_id))
@@ -54,7 +54,7 @@ def download_from_atlas(probe_id, prefix: str = ""):
                 print("failed to download measurement ID: "
                       + str(measurement_id))
             sleep(3)
-            print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+            print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
         print(
             " ********************************************************************** ")
         if len(all_measurements) < 1:

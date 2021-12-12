@@ -22,7 +22,7 @@ def copy_input_packets():
     print(
         " paste here the first packet hex dump start with the IP layer and then enter :")
     copy_packet_1 = IP(import_hexcap())
-    print(" · − · − ·     · − · − ·     · − · − ·     · − · − · ")
+    print(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
     if yesno_second_packet("Would you like to add a second packet"):
         print(
             " paste here the second packet hex dump start with the IP layer and then enter (optional) :")

@@ -15,7 +15,7 @@ from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import sr1
 from scapy.volatile import RandShort
 
-from util.traceroute_struct import Traceroute
+from utils.traceroute_struct import Traceroute
 
 #from scapy.arch import get_if_addr
 #from scapy.interfaces import conf
@@ -44,11 +44,11 @@ def parse_packet(req_answer, current_ttl, elapsed_ms):
               + "   back-ttl: " + str(backttl))
         answer_summary = req_answer.summary()
         print("      " + answer_summary)
-        print("· − · · · rtt: " + str(elapsed_ms) + "ms · · · − · ")
+        print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
         return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
     else:
         print("              *** no response *** ")
-        print("· − · · · rtt: " + str(elapsed_ms) +
+        print("· - · · · rtt: " + str(elapsed_ms) +
               "ms · · · · · · · · timeout ")
         return "***", elapsed_ms, 0, 0, "*"
 
@@ -236,7 +236,7 @@ def trace_route(
     )
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
-    print("− · − · −     − · − · −     − · − · −     − · − · −")
+    print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < 3:
         repeat_all_steps += 1
         previous_node_ids = initialize_first_nodes(request_ips)
@@ -256,7 +256,7 @@ def trace_route(
             else:
                 ip_steps = 0
                 access_block_steps = 0
-                print(" · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+                print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                 while ip_steps < len(request_ips):
                     sleep_time = SLEEP_TIME
                     not_yet_destination = not (already_reached_destination(
@@ -288,7 +288,7 @@ def trace_route(
                             sleep_time = 0
                         previous_node_ids[access_block_steps][ip_steps] = answer_ip
                     print(
-                        " · · · − − − · · ·     · · · − − − · · ·     · · · − − − · · · ")
+                        " · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                     sleep(sleep_time)
                     ip_steps += 1
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
@@ -306,5 +306,5 @@ def trace_route(
     print("saving measurement data...")
     data_path = save_measurement_data(
         request_ips, measurement_name, continue_to_max_ttl)
-    print("· · · − · −     · · · − · −     · · · − · −     · · · − · −")
+    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
     return(was_successful, data_path)
