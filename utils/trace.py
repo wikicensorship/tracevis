@@ -256,6 +256,9 @@ def trace_route(
             else:
                 ip_steps = 0
                 access_block_steps = 0
+                print(
+                    "  · - · - · repeat step: " + str(repeat_all_steps) 
+                    + "  · - · - ·  ttl step: " + str(current_ttl) + " · - · - ·")
                 print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                 while ip_steps < len(request_ips):
                     sleep_time = SLEEP_TIME
