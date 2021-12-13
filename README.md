@@ -8,7 +8,7 @@ TraceVis is a research project whose main goal is to find middleboxes. Where a p
 ##### Build docker image:
 
 ```sh
-docker build -t tracevic .
+docker build -t tracevis .
 ```
 
 ##### Install Python dependencies:
@@ -26,7 +26,7 @@ python3 ./tracevis.py --dns
 or with docker image:
 
 ```sh
-docker run tracevic --dns
+docker run tracevis --dns
 ```
 
 ##### Packet trace:
@@ -38,7 +38,7 @@ python3 ./tracevis.py --packet
 or with docker image:
 
 ```sh
-docker run -it tracevic --packet
+docker run -it tracevis --packet
 ```
 
 ##### Download traceroute data from a RIPE Atlas probe:
@@ -50,7 +50,7 @@ python3 ./tracevis.py --ripe [probe-id]
 or with docker image:
 
 ```sh
-docker run tracevic --ripe [probe-id]
+docker run tracevis --ripe [probe-id]
 ```
 
 ##### Visualize a json file:
@@ -68,7 +68,7 @@ python3 ./tracevis.py -h
 or with docker image:
 
 ```sh
-docker run tracevic
+docker run tracevis
 ```
 
 ##
