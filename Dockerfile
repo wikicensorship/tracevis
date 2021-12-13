@@ -1,8 +1,12 @@
 FROM python:3.10.1
 
-WORKDIR /tracevis
-
 ENV PYTHONUNBUFFERED=TRUE
+
+ENV OUTPUT_DIR=/tracevis_data
+
+RUN mkdir -p /tracevis_data
+
+WORKDIR /tracevis
 
 COPY ./ ./
 
