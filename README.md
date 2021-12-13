@@ -5,6 +5,12 @@ TraceVis is a research project whose main goal is to find middleboxes. Where a p
 
 ## 
 
+##### Build docker image:
+
+```sh
+docker build -t tracevic .
+```
+
 ##### Install Python dependencies:
 
 ```sh
@@ -17,16 +23,34 @@ python3 -m pip install -r requirements.txt
 python3 ./tracevis.py --dns
 ```
 
+or with docker image:
+
+```sh
+docker run tracevic --dns
+```
+
 ##### Packet trace:
 
 ```sh
 python3 ./tracevis.py --packet
 ```
 
+or with docker image:
+
+```sh
+docker run -it tracevic --packet
+```
+
 ##### Download traceroute data from a RIPE Atlas probe:
 
 ```sh
 python3 ./tracevis.py --ripe [probe-id]
+```
+
+or with docker image:
+
+```sh
+docker run tracevic --ripe [probe-id]
 ```
 
 ##### Visualize a json file:
@@ -40,6 +64,13 @@ python3 ./tracevis.py --file ./path/to/file.json
 ```sh
 python3 ./tracevis.py -h
 ```
+
+or with docker image:
+
+```sh
+docker run tracevic
+```
+
 ##
 
 #### Examples:
