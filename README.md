@@ -11,7 +11,7 @@ TraceVis is a research project whose main goal is to find middleboxes. Where a p
 docker build -t tracevis .
 ```
 
-##### Install Python dependencies:
+##### Or install Python dependencies:
 
 ```sh
 python3 -m pip install -r requirements.txt
@@ -50,13 +50,19 @@ python3 ./tracevis.py --ripe [probe-id]
 or with docker image:
 
 ```sh
-docker run tracevis --ripe [probe-id]
+docker run --mount type=bind,source=/path/to/results,target=/tracevis_data/ tracevis --ripe [probe-id]
 ```
 
 ##### Visualize a json file:
 
 ```sh
 python3 ./tracevis.py --file ./path/to/file.json
+```
+
+or with docker image:
+
+```sh
+docker run --mount type=bind,source=/path/to/,target=/tracevis_data/ tracevis --file /tracevis_data/file.json
 ```
 
 ##### See the help message: 
