@@ -5,7 +5,6 @@ import urllib.request
 from datetime import datetime
 from time import sleep
 
-OUTPUT_DIR = "./output/"
 
 MEASUREMENT_IDS = [
     5011,  # c.root-servers.net
@@ -20,12 +19,12 @@ MEASUREMENT_IDS = [
 ]
 
 
-def download_from_atlas(probe_id, prefix: str = ""):
+def download_from_atlas(probe_id, output_dir: str, name_prefix: str = ""):
     all_measurements = []
     measurement_name = ""
     was_successful = False
-    if prefix != "":
-        measurement_name = prefix + "-ripe-atlas-" + str(probe_id) + "-tracevis-" \
+    if name_prefix != "":
+        measurement_name = name_prefix + "-ripe-atlas-" + str(probe_id) + "-tracevis-" \
             + datetime.utcnow().strftime("%Y%m%d-%H%M")
     else:
         measurement_name = "ripe-atlas-" + str(probe_id) + "-tracevis-" \
@@ -59,7 +58,7 @@ def download_from_atlas(probe_id, prefix: str = ""):
             " ********************************************************************** ")
         if len(all_measurements) < 1:
             exit()
-        measurement_path = OUTPUT_DIR + measurement_name + ".json"
+        measurement_path = output_dir + measurement_name + ".json"
         print("saving json file... to: " + measurement_path)
         with open((measurement_path), 'w', encoding='utf-8') as json_file:
             json.dump(all_measurements, json_file,
