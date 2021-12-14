@@ -1,11 +1,8 @@
-name: Create and publish a Docker image
+name: Dockerise
 
 on:
-  push:
-
-# on:
-#   release:
-#     types: [published]
+  release:
+    types: [published]
 
 env:
   IMAGE_NAME: ${{ github.repository }}
@@ -34,7 +31,8 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          type: semver,pattern={{version}}
+          tags: | 
+            {{tag}}
 
       - name: Build and push
         uses: docker/build-push-action@v2
