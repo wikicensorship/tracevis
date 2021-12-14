@@ -1,21 +1,29 @@
 # TraceVis
 Traceroute with any packet. Visualize the routes. Discover Middleboxes and Firewalls
-##
+
 TraceVis is a research project whose main goal is to find middleboxes. Where a packet is tampered with or blocked. This tool also has other features such as downloading and visualizing traceroute data from RIPE Atlas probes.
 
-## 
+## Install and build
 
-##### Build docker image:
+##### Pull docker image from github container registry:
+
+```sh
+docker pull ghcr.io/wikicensorship/tracevis
+```
+
+##### Or clone project and build docker image on your machine:
 
 ```sh
 docker build -t tracevis .
 ```
 
-##### Or install Python dependencies:
+##### Or clone project and install Python dependencies:
 
 ```sh
 python3 -m pip install -r requirements.txt
 ```
+
+## How to use
 
 ##### Default DNS trace:
 
@@ -26,7 +34,7 @@ python3 ./tracevis.py --dns
 or with docker image:
 
 ```sh
-docker run tracevis --dns
+docker run ghcr.io/wikicensorship/tracevis --dns
 ```
 
 ##### Packet trace:
@@ -38,7 +46,7 @@ python3 ./tracevis.py --packet
 or with docker image:
 
 ```sh
-docker run -it tracevis --packet
+docker run -it ghcr.io/wikicensorship/tracevis --packet
 ```
 
 ##### Download traceroute data from a RIPE Atlas probe:
@@ -49,8 +57,10 @@ python3 ./tracevis.py --ripe [probe-id]
 
 or with docker image:
 
-```sh
-docker run --mount type=bind,source=/path/to/results,target=/tracevis_data/ tracevis --ripe [probe-id]
+```sh  
+docker run \
+    --mount type=bind,source=/path/to/results,target=/tracevis_data/ \
+    ghcr.io/wikicensorship/tracevis --ripe [probe-id]
 ```
 
 ##### Visualize a json file:
@@ -62,7 +72,9 @@ python3 ./tracevis.py --file ./path/to/file.json
 or with docker image:
 
 ```sh
-docker run --mount type=bind,source=/path/to/,target=/tracevis_data/ tracevis --file /tracevis_data/file.json
+docker run \
+    --mount type=bind,source=/path/to/,target=/tracevis_data/ \
+    ghcr.io/wikicensorship/tracevis --file /tracevis_data/file.json
 ```
 
 ##### See the help message: 
@@ -74,7 +86,7 @@ python3 ./tracevis.py -h
 or with docker image:
 
 ```sh
-docker run tracevis
+docker run ghcr.io/wikicensorship/tracevis
 ```
 
 ##
