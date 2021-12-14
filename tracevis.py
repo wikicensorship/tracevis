@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import argparse
-from time import sleep
+import os
 
 import utils.dns
 import utils.packet_input
@@ -12,6 +12,7 @@ import utils.vis
 
 TIMEOUT = 1
 MAX_TTL = 50
+DEFAULT_OUTPUT_DIR = "./tracevis_data/"
 
 
 def get_args():
@@ -71,6 +72,9 @@ def main(args):
     was_successful = False
     measurement_path = ""
     edge_lable = "backttl"
+    output_dir = os.getenv('TRACEVIS_OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     if args.get("name"):
         name_prefix = args["name"] + "-"
     if args.get("ips"):
@@ -107,7 +111,7 @@ def main(args):
         packet_1, packet_2 = utils.packet_input.copy_input_packets()
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
-            ip_list=request_ips, request_packet_1=packet_1,
+            ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
             max_ttl=max_ttl, timeout=timeout,
             request_packet_2=packet_2, name_prefix=name_prefix,
             annotation_1=annotation_1, annotation_2=annotation_2,
@@ -115,7 +119,7 @@ def main(args):
     if args.get("ripe"):
         name_prefix = name_prefix + "ripe-atlas"
         was_successful, measurement_path = utils.ripe_atlas.download_from_atlas(
-            probe_id=args["ripe"])
+            probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix)
     if args.get("file"):
         was_successful = True
         measurement_path = args["file"]

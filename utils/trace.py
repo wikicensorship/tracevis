@@ -24,7 +24,6 @@ LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
 measurement_data = [[], []]
-OUTPUT_DIR = "./output/"
 
 
 def parse_packet(req_answer, current_ttl, elapsed_ms):
@@ -167,7 +166,8 @@ def get_proto(request_packets):
         return packet_1_proto, ""
 
 
-def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
+def save_measurement_data(
+        request_ips, measurement_name, continue_to_max_ttl, output_dir):
     end_time = int(datetime.utcnow().timestamp())
     measurement_data_json = []
     ip_steps = 0
@@ -182,7 +182,7 @@ def save_measurement_data(request_ips, measurement_name, continue_to_max_ttl):
                 measurement_data[1][ip_steps].clean_extra_result()
             measurement_data_json.append(measurement_data[1][ip_steps])
         ip_steps += 1
-    data_path = OUTPUT_DIR + measurement_name + ".json"
+    data_path = output_dir + measurement_name + ".json"
     with open(data_path, "a") as jsonfile:
         jsonfile.write(json.dumps(measurement_data_json,
                        default=lambda o: o.__dict__, indent=4))
@@ -202,7 +202,8 @@ def check_for_permission():
 
 
 def trace_route(
-        ip_list, request_packet_1, max_ttl: int, timeout: int,
+        ip_list, request_packet_1, output_dir: str,
+        max_ttl: int, timeout: int,
         request_packet_2: str = "", name_prefix: str = "",
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
@@ -234,8 +235,6 @@ def trace_route(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=packet_1_proto, packet_2_proto=packet_2_proto
     )
-    if not os.path.exists(OUTPUT_DIR):
-        os.mkdir(OUTPUT_DIR)
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < 3:
         repeat_all_steps += 1
@@ -257,7 +256,7 @@ def trace_route(
                 ip_steps = 0
                 access_block_steps = 0
                 print(
-                    "  · - · - · repeat step: " + str(repeat_all_steps) 
+                    "  · - · - · repeat step: " + str(repeat_all_steps)
                     + "  · - · - ·  ttl step: " + str(current_ttl) + " · - · - ·")
                 print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                 while ip_steps < len(request_ips):
@@ -308,6 +307,6 @@ def trace_route(
     was_successful = True
     print("saving measurement data...")
     data_path = save_measurement_data(
-        request_ips, measurement_name, continue_to_max_ttl)
+        request_ips, measurement_name, continue_to_max_ttl, output_dir)
     print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
     return(was_successful, data_path)
