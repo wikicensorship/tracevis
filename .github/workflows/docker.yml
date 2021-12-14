@@ -2,7 +2,7 @@ name: Create and publish a Docker image
 
 on:
   release:
-    types: [published]
+    types: [published, created]
 
 env:
   IMAGE_NAME: ${{ github.repository }}
