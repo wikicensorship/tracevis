@@ -9,7 +9,7 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-image:
+  prepare-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,7 +33,7 @@ jobs:
           tags: | 
             {{tag}}
             
-  push-image:
+  build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
