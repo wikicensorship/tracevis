@@ -1,11 +1,7 @@
 name: Dockerise
 
 on:
-  push:
-  
-# on:
-#   release:
-#     types: [published, created]
+  release:
 
 env:
   IMAGE_NAME: ${{ github.repository }}
