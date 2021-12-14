@@ -9,7 +9,7 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  prepare-image:
+  push-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,16 +32,9 @@ jobs:
             latest=true
           tags: | 
             {{tag}}
-            
-  build-and-push-image:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:       
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}            
