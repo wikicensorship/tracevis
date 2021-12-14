@@ -2,6 +2,7 @@ name: Dockerise
 
 on:
   release:
+    types: [published]
 
 env:
   IMAGE_NAME: ${{ github.repository }}
@@ -30,7 +31,8 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: type=raw,value={{raw}}
+          tags: | 
+            {{raw}}
 
       - name: Build and push
         uses: docker/build-push-action@v2
