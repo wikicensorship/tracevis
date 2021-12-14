@@ -2,7 +2,7 @@ FROM python:3.10.1-slim-bullseye
 
 ENV PYTHONUNBUFFERED=TRUE
 
-ENV OUTPUT_DIR=/tracevis_data
+ENV TRACEVIS_OUTPUT_DIR=/tracevis_data/
 
 RUN mkdir -p /tracevis_data
 
