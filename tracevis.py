@@ -13,7 +13,7 @@ import utils.vis
 TIMEOUT = 1
 MAX_TTL = 50
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
-
+DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -106,7 +106,7 @@ def main(args):
             blocked_address=blocked_address, accessible_address=accessible_address,
             dns_over_tcp=(args["dnstcp"]))
         if len(request_ips) == 0:
-            request_ips = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
+            request_ips = DEFAULT_REQUEST_IPS
     if args.get("packet"):
         do_traceroute = True
         name_prefix = name_prefix + "packet"
