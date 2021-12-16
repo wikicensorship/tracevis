@@ -35,8 +35,10 @@ def get_args():
                         help="set max TTL (up to 255, default: 50)")
     parser.add_argument('-t', '--timeout', type=int,
                         help="set timeout in seconds for each request (default: 1 second)")
-    parser.add_argument('-r', '--ripe', type=str,
+    parser.add_argument('-R', '--ripe', type=str,
                         help="download the latest traceroute measuremets of a RIPE Atlas probe via ID and visualize")
+    parser.add_argument('-I', '--ripemids', type=str,
+                        help="add comma-separated RIPE Atlas measurement IDs (up to 12)")
     parser.add_argument('-f', '--file', type=str,
                         help=" open a measurement file and visualize")
     parser.add_argument('-a', '--attach', action='store_true',
@@ -78,7 +80,7 @@ def main(args):
     if args.get("name"):
         name_prefix = args["name"] + "-"
     if args.get("ips"):
-        request_ips = args["ips"].split(',')
+        request_ips = args["ips"].replace(' ', '').split(',')
     if args.get("domain1"):
         accessible_address = args["domain1"]
     if args.get("domain2"):
@@ -117,9 +119,13 @@ def main(args):
             annotation_1=annotation_1, annotation_2=annotation_2,
             continue_to_max_ttl=continue_to_max_ttl)
     if args.get("ripe"):
+        measurement_ids = []
+        if args.get("ripemids"):
+            measurement_ids = args["ripemids"].replace(' ', '').split(',')
         name_prefix = name_prefix + "ripe-atlas"
         was_successful, measurement_path = utils.ripe_atlas.download_from_atlas(
-            probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix)
+            probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix,
+            measurement_ids=measurement_ids)
     if args.get("file"):
         was_successful = True
         measurement_path = args["file"]

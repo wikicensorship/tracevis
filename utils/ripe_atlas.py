@@ -19,10 +19,14 @@ MEASUREMENT_IDS = [
 ]
 
 
-def download_from_atlas(probe_id, output_dir: str, name_prefix: str = ""):
+def download_from_atlas(
+        probe_id, output_dir: str, name_prefix: str = "",
+        measurement_ids: str = ""):
     all_measurements = []
     measurement_name = ""
     was_successful = False
+    if measurement_ids == "":
+        measurement_ids = MEASUREMENT_IDS
     if name_prefix != "":
         measurement_name = name_prefix + "-ripe-atlas-" + str(probe_id) + "-tracevis-" \
             + datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -35,7 +39,7 @@ def download_from_atlas(probe_id, output_dir: str, name_prefix: str = ""):
         print(
             "downloading data from probe ID: " + str(probe_id))
         print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
-        for measurement_id in MEASUREMENT_IDS:
+        for measurement_id in measurement_ids:
             print(
                 "downloading measurement ID: " + str(measurement_id))
             requset_url = ("https://atlas.ripe.net/api/v2/measurements/"
