@@ -119,7 +119,7 @@ def main(args):
             annotation_1=annotation_1, annotation_2=annotation_2,
             continue_to_max_ttl=continue_to_max_ttl)
     if args.get("ripe"):
-        measurement_ids = []
+        measurement_ids = ""
         if args.get("ripemids"):
             measurement_ids = args["ripemids"].replace(' ', '').split(',')
         name_prefix = name_prefix + "ripe-atlas"
