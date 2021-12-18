@@ -49,9 +49,9 @@ def get_args():
                         help="change the default accessible domain name (dns trace)")
     parser.add_argument('-d', '--domain2', type=str,
                         help="change the default blocked domain name (dns trace)")
-    parser.add_argument('--annot1', action='store_true',
+    parser.add_argument('--annot1', type=str,
                         help="annotation for the first packets (dns and packet trace)")
-    parser.add_argument('--annot2', action='store_true',
+    parser.add_argument('--annot2', type=str,
                         help="annotation for the second packets (dns and packet trace)")
     args = parser.parse_args()
     return args
