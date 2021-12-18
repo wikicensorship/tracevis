@@ -110,6 +110,9 @@ def main(args):
     if args.get("packet"):
         do_traceroute = True
         name_prefix = name_prefix + "packet"
+        if request_ips == "":
+            print("You must set at least one IP. (--ips || -i)")
+            exit()
         packet_1, packet_2 = utils.packet_input.copy_input_packets()
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
