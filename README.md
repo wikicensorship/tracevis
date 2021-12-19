@@ -1,6 +1,9 @@
 # TraceVis
 Traceroute with any packet. Visualize the routes. Discover Middleboxes and Firewalls
 
+[![CodeQL](https://github.com/wikicensorship/tracevis/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/wikicensorship/tracevis/actions/workflows/codeql-analysis.yml)
+[![Dockerise](https://github.com/wikicensorship/tracevis/actions/workflows/docker.yml/badge.svg)](https://github.com/wikicensorship/tracevis/actions/workflows/docker.yml)
+
 TraceVis is a research project whose main goal is to find middleboxes. Where a packet is tampered with or blocked. This tool also has other features such as downloading and visualizing traceroute data from RIPE Atlas probes.
 
 ## Install and build
