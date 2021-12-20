@@ -15,6 +15,7 @@ MAX_TTL = 50
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
 DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 
+
 def get_args():
     parser = argparse.ArgumentParser(
         description='Traceroute with any packet. \
