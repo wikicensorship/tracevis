@@ -3,7 +3,6 @@ from __future__ import absolute_import, unicode_literals
 
 import contextlib
 import json
-import os
 import sys
 import time
 from datetime import datetime
@@ -71,6 +70,7 @@ def ephemeral_port_reserve():
 
 def send_packet(request_packet, request_ip, current_ttl, timeout):
     this_request = request_packet
+    del(this_request[IP].src)
     this_request[IP].dst = request_ip
     this_request[IP].ttl = current_ttl
     this_request[IP].id = RandShort()
@@ -213,8 +213,8 @@ def trace_route(
     request_packets = []
     was_successful = False
     global have_2_packet
-    if request_packet_1 is None or len(ip_list) < 1:
-        print("failed")  # todo: xhdix
+    if request_packet_1 is None:
+        print("packet is invalid!")
         exit()
     if request_packet_2 == "":
         request_packets.append(request_packet_1)
