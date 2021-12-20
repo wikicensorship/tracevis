@@ -8,10 +8,13 @@ RUN mkdir -p /tracevis_data
 
 WORKDIR /tracevis
 
-COPY ./ ./
+# Install requirements before copying whole source. (used for quick build)
+COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
-ENTRYPOINT [ "python", "/tracevis/tracevis.py" ]
+COPY . .
+
+ENTRYPOINT [ "python", "tracevis.py" ]
 
 CMD [ "-h" ]

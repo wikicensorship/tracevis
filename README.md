@@ -64,6 +64,11 @@ or with docker image:
 docker run \
     --mount type=bind,source=/path/to/results,target=/tracevis_data/ \
     ghcr.io/wikicensorship/tracevis --ripe [probe-id]
+# OR
+docker run \
+    -v /path/to/results/:/tracevis_data/ \
+    ghcr.io/wikicensorship/tracevis --ripe [probe-id]
+
 ```
 
 ##### Visualize a json file:
@@ -78,6 +83,11 @@ or with docker image:
 docker run \
     --mount type=bind,source=/path/to/,target=/tracevis_data/ \
     ghcr.io/wikicensorship/tracevis --file /tracevis_data/file.json
+# OR
+docker run \
+    -v /path/to/results/:/tracevis_data/ \
+    ghcr.io/wikicensorship/tracevis --file /tracevis_data/file.json
+
 ```
 
 ##### See the help message: 
