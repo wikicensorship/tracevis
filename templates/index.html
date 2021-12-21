@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+        <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+
+        <title>{{ title }}</title>
+
+
+
+        <script>
+            document.getElementById('button').onclick = function() {
+                 alert("button was clicked");
+            };
+            </script>
+
+
+
+    </head>
+    <body style="text-align: -webkit-center;" >
+        <h1>TraceVis</h1>
+        <br>
+
+        
+        <div style="align-self: center;" >
+
+            <div class="form-group">
+            <form  action="/process" method="POST" style="margin-left: 10%; margin-right: 10%;" >
+
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text" id="basic-addon1">URL</span>
+                    </div>
+                    <input  type="text" class="form-control" placeholder="https://github.com" aria-label="Username" aria-describedby="basic-addon1" name="url">
+                  </div>
+                </div>
+
+                <button id="button" type="submit" class="btn btn-warning">START</button>
+            </form>
+        </div>
+        <div id="loader">
+            <div id="shadow"></div>
+            <div id="box"></div>
+          </div>
+          <br>
+          <h4>This process may take more than 5 minutes - be patient</h4>
+    
+    
+    </body>
+</html>
