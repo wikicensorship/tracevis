@@ -4,6 +4,7 @@ from __future__ import absolute_import, unicode_literals
 import argparse
 import os
 
+import utils.csv
 import utils.dns
 import utils.packet_input
 import utils.ripe_atlas
@@ -41,7 +42,9 @@ def get_args():
     parser.add_argument('-I', '--ripemids', type=str,
                         help="add comma-separated RIPE Atlas measurement IDs (up to 12)")
     parser.add_argument('-f', '--file', type=str,
-                        help=" open a measurement file and visualize")
+                        help="open a measurement file and visualize")
+    parser.add_argument('--csv', action='store_true',
+                        help="create a csv file instead of visualization")
     parser.add_argument('-a', '--attach', action='store_true',
                         help="attach VisJS javascript and CSS to the HTML file (work offline)")
     parser.add_argument('-l', '--label', type=str,
@@ -131,8 +134,11 @@ def main(args):
             probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix,
             measurement_ids=measurement_ids)
     if args.get("file"):
-        was_successful = True
         measurement_path = args["file"]
+        if args.get("csv"):
+            utils.csv.json2csv(measurement_path)
+        else:
+            was_successful = True
     if was_successful:
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
