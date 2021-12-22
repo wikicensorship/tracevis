@@ -88,10 +88,14 @@ def json2csv_clean(file_name: str) -> str:
     return csv_str
 
 
-def json2csv(file_name: str):
+def json2csv(file_name: str, sorted: bool = True):
     if os.path.isfile(file_name):
         with open(file_name.replace(".json", ".csv"), "w") as csvfile:
-            csv = json2csv_clean(file_name)
+            csv = ""
+            if sorted:
+                csv = json2csv_clean(file_name)
+            else:
+                csv = json2csv_raw(file_name)
             if csv != "":
                 print("saving measurement graph...")
                 csvfile.write(csv)
