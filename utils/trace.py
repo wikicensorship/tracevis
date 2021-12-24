@@ -11,7 +11,7 @@ from time import sleep
 
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
-from scapy.sendrecv import sr1
+from scapy.sendrecv import sr, sr1
 from scapy.volatile import RandShort
 
 from utils.traceroute_struct import Traceroute
@@ -25,8 +25,15 @@ have_2_packet = False
 measurement_data = [[], []]
 
 
-def parse_packet(req_answer, current_ttl, elapsed_ms):
-    if req_answer is not None:
+def parse_packet(request_and_answer, current_ttl, elapsed_ms):
+    if request_and_answer is not None:
+        req_answer = request_and_answer[1]
+        packet_send_time = request_and_answer[0].sent_time
+        packet_receive_time = req_answer.time
+        packet_elapsed_ms = float(
+            format(abs((packet_receive_time - packet_send_time) * 1000), '.3f'))
+        if packet_elapsed_ms > 0:
+            elapsed_ms = packet_elapsed_ms
         backttl = 0
         if req_answer[IP].ttl <= 20:
             backttl = int((current_ttl - req_answer[IP].ttl) / 2) + 1
@@ -88,10 +95,14 @@ def send_packet(request_packet, request_ip, current_ttl, timeout):
           + "   ip.dst: " + this_request[IP].dst
           + "   ip.ttl: " + str(current_ttl))
     start_time = time.perf_counter()
-    req_answer = sr1(this_request, verbose=0, timeout=timeout)
+    request_and_answers, unanswered = sr(
+        this_request, verbose=0, timeout=timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
-    return parse_packet(req_answer, current_ttl, elapsed_ms)
+    if len(request_and_answers) == 0:
+        return parse_packet(None, current_ttl, elapsed_ms)
+    else:
+        return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
 
 
 def already_reached_destination(previous_node_id, current_node_ip):
