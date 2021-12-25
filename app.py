@@ -3,6 +3,7 @@ from flask import render_template
 from flask import request,redirect,session
 from flask.helpers import url_for
 import subprocess
+import platform
 
 import os
 
@@ -29,7 +30,11 @@ def index():
 def process():
     if request.method=="POST":
         url= request.form.get('url')
-        temp_return= run_command('sudo python3 ./tracevis.py --dns --domain1 %s --domain2 %s'% (url, url))
+        if (platform.system()=='Linux'):
+
+            temp_return= run_command('sudo python3 ./tracevis.py --dns --domain1 %s --domain2 %s'% (url, url))
+        elif (platform.system()=='Windows'):
+            temp_return= run_command('python .\tracevis.py --dns --domain1 %s --domain2 %s'% (url, url))
         x=str(temp_return).rsplit('/', 1)[-1]
         size=len(x)
         z=x[:size - 3]
