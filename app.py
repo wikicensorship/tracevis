@@ -18,7 +18,7 @@ def index():
     
     if request.method == 'GET':
         
-        return render_template('index.html', title='Welcome', username=name)
+        return render_template('index.html', title='Welcome', )
     if request.method == 'POST':
         
         url= request.form.get('url')
