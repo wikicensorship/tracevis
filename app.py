@@ -16,7 +16,7 @@ app.secret_key = 'the random string'
 def index():
     
     if request.method == 'GET':
-        name = 'Rosalia'
+        
         return render_template('index.html', title='Welcome', username=name)
     if request.method == 'POST':
         
