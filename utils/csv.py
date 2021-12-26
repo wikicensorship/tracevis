@@ -60,13 +60,17 @@ def parse_json(file_name: str) -> list:
 def json2csv_raw(file_name: str) -> str:
     csv_str = 'dst_addr,proto,annot,hop,res_from1,rtt1,ttl1,res_from2,rtt2,ttl2,res_from3,rtt3,ttl3\n'
     data = parse_json(file_name)
+    last_hop = 1
     for row in data:
+        if row["hop"] < last_hop:
+            csv_str += ",,,,,,,,,,,,\n"
         csv_str += "{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
             row["dst_addr"], row["proto"], row["annot"], row["hop"],
             row["res_from1"], row["rtt1"], row["ttl1"],
             row["res_from2"], row["rtt2"], row["ttl2"],
             row["res_from3"], row["rtt3"], row["ttl3"]
         )
+        last_hop = row["hop"]
     return csv_str
 
 
@@ -90,15 +94,16 @@ def json2csv_clean(file_name: str) -> str:
 
 def json2csv(file_name: str, sorted: bool = True):
     if os.path.isfile(file_name):
-        with open(file_name.replace(".json", ".csv"), "w") as csvfile:
+        new_file_name = file_name.replace(".json", ".csv")
+        with open(new_file_name, "w") as csvfile:
             csv = ""
             if sorted:
                 csv = json2csv_clean(file_name)
             else:
                 csv = json2csv_raw(file_name)
             if csv != "":
-                print("saving measurement graph...")
+                print("saving measurement in csv...")
                 csvfile.write(csv)
-                print("saved: " + file_name)
+                print("saved: " + new_file_name)
     else:
         print("error: " + file_name + " does not exist!")
