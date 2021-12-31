@@ -11,8 +11,8 @@ from time import sleep
 
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
-from scapy.sendrecv import sr, sr1
-from scapy.volatile import RandShort
+from scapy.sendrecv import send, sr, sr1
+from scapy.volatile import RandInt, RandShort
 
 from utils.traceroute_struct import Traceroute
 
@@ -75,11 +75,46 @@ def ephemeral_port_reserve():
                 return sockname[1]
 
 
-def send_packet(request_packet, request_ip, current_ttl, timeout):
-    this_request = request_packet
-    del(this_request[IP].src)
-    this_request[IP].dst = request_ip
-    this_request[IP].ttl = current_ttl
+def send_packet_with_tcphandshake(this_request, timeout):
+    timeout += 2
+    ip_address = this_request[IP].dst
+    source_port = ephemeral_port_reserve()
+    destination_port = this_request[TCP].dport
+    send_syn = IP(
+        dst=ip_address, id=RandShort())/TCP(
+        sport=source_port, dport=destination_port, seq=RandInt(), flags="S")
+    ans, unans = sr(send_syn, verbose=0, timeout=timeout)
+    if len(ans) == 0:
+        print("Error: No response to SYN packet")  # todo: xhdix
+    else:
+        send_ack = IP(
+            dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
+            sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
+            ack=ans[0][1][TCP].seq + 1, flags="A")
+        send(send_ack, verbose=0)
+        send_data = this_request
+        del(send_data[IP].src)
+        send_data[IP].id = ans[0][0][IP].id + 1
+        send_data[TCP].sport = source_port
+        send_data[TCP].seq = ans[0][1][TCP].ack
+        send_data[TCP].ack = ans[0][1][TCP].seq + 1
+        del(send_data[TCP].chksum)
+        del(send_data[IP].len)
+        del(send_data[IP].chksum)
+        request_and_answers, unanswered = sr(
+            send_data, verbose=0, timeout=timeout)
+        # send_fin = send_ack.copy() # todo: xhdix
+        # send_fin[IP].id=ans[0][0][IP].id + 1
+        # send_fin[TCP].flags = "FA"
+        # send(send_fin, verbose=0)
+        # send_last_ack=send_fin.copy()
+        # send_last_ack[IP].id=send_fin[IP].id + 1
+        # send_last_ack[TCP].flags = "A"
+        # send(send_last_ack, verbose=0)
+        return request_and_answers, unanswered
+
+
+def send_single_packet(this_request, timeout):
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
         this_request[TCP].sport = ephemeral_port_reserve()
@@ -91,12 +126,29 @@ def send_packet(request_packet, request_ip, current_ttl, timeout):
         this_request.id = RandShort()
     del(this_request[IP].len)
     del(this_request[IP].chksum)
-    print(">>>request:"
-          + "   ip.dst: " + this_request[IP].dst
-          + "   ip.ttl: " + str(current_ttl))
-    start_time = time.perf_counter()
     request_and_answers, unanswered = sr(
         this_request, verbose=0, timeout=timeout)
+    return request_and_answers, unanswered
+
+
+def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshake):
+    this_request = request_packet
+    del(this_request[IP].src)
+    this_request[IP].dst = request_ip
+    this_request[IP].ttl = current_ttl
+    print(">>>request:"
+          + "   ip.dst: " + request_ip
+          + "   ip.ttl: " + str(current_ttl))
+    request_and_answers = []
+    unanswered = []
+    start_time = time.perf_counter()
+    if do_tcphandshake:
+        request_and_answers, unanswered = send_packet_with_tcphandshake(
+            this_request, timeout)
+        sleep(timeout) # maybe we should wait more
+    else:
+        request_and_answers, unanswered = send_single_packet(
+            this_request, timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
     if len(request_and_answers) == 0:
@@ -218,10 +270,12 @@ def trace_route(
         request_packet_2: str = "", name_prefix: str = "",
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
+        do_tcph1: bool = False, do_tcph2: bool = False
 ):
     check_for_permission()
     measurement_name = ""
     request_packets = []
+    do_tcphandshake = []
     was_successful = False
     global have_2_packet
     if request_packet_1 is None:
@@ -229,10 +283,13 @@ def trace_route(
         exit()
     if request_packet_2 == "":
         request_packets.append(request_packet_1)
+        do_tcphandshake.append(do_tcph1)
         have_2_packet = False
     else:
         request_packets.append(request_packet_1)
         request_packets.append(request_packet_2)
+        do_tcphandshake.append(do_tcph1)
+        do_tcphandshake.append(do_tcph2)
         have_2_packet = True
     request_ips = ip_list
     if name_prefix != "":
@@ -279,7 +336,7 @@ def trace_route(
                         if not_yet_destination:
                             answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
                                 request_packets[access_block_steps], request_ips[ip_steps],
-                                current_ttl, timeout)
+                                current_ttl, timeout, do_tcphandshake[access_block_steps])
                             measurement_data[access_block_steps][ip_steps].add_hop(
                                 current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                             )
@@ -292,7 +349,7 @@ def trace_route(
                     else:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
                             request_packets[access_block_steps], request_ips[ip_steps],
-                            current_ttl, timeout)
+                            current_ttl, timeout, do_tcphandshake[access_block_steps])
                         measurement_data[access_block_steps][ip_steps].add_hop(
                             current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                         )

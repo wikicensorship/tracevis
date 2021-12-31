@@ -72,8 +72,10 @@ def main(args):
     request_ips = []
     packet_1 = None
     annotation_1 = ""
+    do_tcph1 = False
     packet_2 = None
     annotation_2 = ""
+    do_tcph2 = False
     blocked_address = ""
     accessible_address = ""
     do_traceroute = False
@@ -119,14 +121,15 @@ def main(args):
         if request_ips == "":
             print("You must set at least one IP. (--ips || -i)")
             exit()
-        packet_1, packet_2 = utils.packet_input.copy_input_packets()
+        packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets()
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
             max_ttl=max_ttl, timeout=timeout,
             request_packet_2=packet_2, name_prefix=name_prefix,
             annotation_1=annotation_1, annotation_2=annotation_2,
-            continue_to_max_ttl=continue_to_max_ttl)
+            continue_to_max_ttl=continue_to_max_ttl,
+            do_tcph1=do_tcph1, do_tcph2=do_tcph2)
     if args.get("ripe"):
         measurement_ids = ""
         if args.get("ripemids"):
