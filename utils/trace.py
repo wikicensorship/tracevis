@@ -16,9 +16,10 @@ from scapy.volatile import RandInt, RandShort
 
 from utils.traceroute_struct import Traceroute
 
-#from scapy.arch import get_if_addr
-#from scapy.interfaces import conf
+from scapy.arch import get_if_addr
+from scapy.interfaces import conf
 
+SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
@@ -63,7 +64,7 @@ def parse_packet(request_and_answer, current_ttl, elapsed_ms):
 
 def ephemeral_port_reserve():
     with contextlib.closing(socket()) as s:
-        s.bind((LOCALHOST, 0))
+        s.bind((SOURCE_IP_ADDRESS, 0))
         # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
         s.listen(1)
         sockname = s.getsockname()
@@ -182,7 +183,7 @@ def are_equal(original_list, result_list):
 def initialize_first_nodes(request_ips):
     nodes = []
     for _ in request_ips:
-        nodes.append(LOCALHOST)
+        nodes.append(SOURCE_IP_ADDRESS)
     if have_2_packet:
         return [nodes, nodes.copy()]
     else:
@@ -192,7 +193,7 @@ def initialize_first_nodes(request_ips):
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto):
     # source_address = get_if_addr(conf.iface) #todo: xhdix
-    source_address = LOCALHOST
+    source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
         measurement_data[0].append(
