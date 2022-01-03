@@ -3,22 +3,21 @@ from __future__ import absolute_import, unicode_literals
 
 import contextlib
 import json
+import socket
 import sys
 import time
 from datetime import datetime
-from socket import socket
 from time import sleep
 
+from scapy.all import conf, get_if_addr
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
 from scapy.volatile import RandInt, RandShort
 
-from utils.traceroute_struct import Traceroute
+from utils.traceroute_struct import traceroute_data
 
-#from scapy.arch import get_if_addr
-#from scapy.interfaces import conf
-
+SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
@@ -61,24 +60,33 @@ def parse_packet(request_and_answer, current_ttl, elapsed_ms):
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
 
 
-def ephemeral_port_reserve():
-    with contextlib.closing(socket()) as s:
-        s.bind((LOCALHOST, 0))
+def ephemeral_port_reserve(proto: str = "tcp"):
+    socketkind = socket.SOCK_STREAM
+    ipproto = socket.IPPROTO_TCP
+    if proto == "udp":
+        socketkind = socket.SOCK_DGRAM
+        ipproto = socket.IPPROTO_UDP
+    with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s:
+        s.bind((SOURCE_IP_ADDRESS, 0))
         # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
-        s.listen(1)
+        if proto == "tcp":
+            s.listen(1)
         sockname = s.getsockname()
         # these three are necessary just to get the port into a TIME_WAIT state
-        with contextlib.closing(socket()) as s2:
+        with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s2:
             s2.connect(sockname)
-            sock, _ = s.accept()
-            with contextlib.closing(sock):
+            if proto == "tcp":
+                sock, _ = s.accept()
+                with contextlib.closing(sock):
+                    return sockname[1]
+            with contextlib.closing(s2):
                 return sockname[1]
 
 
 def send_packet_with_tcphandshake(this_request, timeout):
     timeout += 2
     ip_address = this_request[IP].dst
-    source_port = ephemeral_port_reserve()
+    source_port = ephemeral_port_reserve("tcp")
     destination_port = this_request[TCP].dport
     send_syn = IP(
         dst=ip_address, id=RandShort())/TCP(
@@ -86,6 +94,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
     ans, unans = sr(send_syn, verbose=0, timeout=timeout)
     if len(ans) == 0:
         print("Error: No response to SYN packet")  # todo: xhdix
+        return ans, unans
     else:
         send_ack = IP(
             dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
@@ -117,10 +126,10 @@ def send_packet_with_tcphandshake(this_request, timeout):
 def send_single_packet(this_request, timeout):
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
-        this_request[TCP].sport = ephemeral_port_reserve()
+        this_request[TCP].sport = ephemeral_port_reserve("tcp")
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
-        this_request[UDP].sport = RandShort()
+        this_request[UDP].sport = ephemeral_port_reserve("udp")
         del(this_request[UDP].chksum)
     if this_request.haslayer(DNS):
         this_request.id = RandShort()
@@ -145,12 +154,13 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     if do_tcphandshake:
         request_and_answers, unanswered = send_packet_with_tcphandshake(
             this_request, timeout)
-        sleep(timeout) # maybe we should wait more
     else:
         request_and_answers, unanswered = send_single_packet(
             this_request, timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
+    if do_tcphandshake:
+        sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
     if len(request_and_answers) == 0:
         return parse_packet(None, current_ttl, elapsed_ms)
     else:
@@ -182,7 +192,7 @@ def are_equal(original_list, result_list):
 def initialize_first_nodes(request_ips):
     nodes = []
     for _ in request_ips:
-        nodes.append(LOCALHOST)
+        nodes.append(SOURCE_IP_ADDRESS)
     if have_2_packet:
         return [nodes, nodes.copy()]
     else:
@@ -192,18 +202,18 @@ def initialize_first_nodes(request_ips):
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto):
     # source_address = get_if_addr(conf.iface) #todo: xhdix
-    source_address = LOCALHOST
+    source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
         measurement_data[0].append(
-            Traceroute(
+            traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, timestamp=start_time
             )
         )
         if have_2_packet:
             measurement_data[1].append(
-                Traceroute(
+                traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, timestamp=start_time
                 )
@@ -278,6 +288,10 @@ def trace_route(
     do_tcphandshake = []
     was_successful = False
     global have_2_packet
+    if do_tcph1:
+        annotation_1 += " (+tcph)"
+    if do_tcph2:
+        annotation_2 += " (+tcph)"
     if request_packet_1 is None:
         print("packet is invalid!")
         exit()

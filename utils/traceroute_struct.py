@@ -2,7 +2,7 @@
 import json
 
 
-class Traceroute:
+class traceroute_data:
     def __init__(
         self, dst_addr: str, annotation: str, proto: str, timestamp: int,
         src_addr: str = "127.0.0.2", from_ip: str = "127.0.0.1",
