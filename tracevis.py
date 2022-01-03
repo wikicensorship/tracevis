@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 
 import argparse
 import os
+import platform
 
 import utils.csv
 import utils.dns
@@ -15,7 +16,7 @@ TIMEOUT = 1
 MAX_TTL = 50
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
 DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
-
+OS_NAME = platform.system()
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -121,7 +122,7 @@ def main(args):
         if request_ips == "":
             print("You must set at least one IP. (--ips || -i)")
             exit()
-        packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets()
+        packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(OS_NAME)
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,

@@ -6,18 +6,16 @@ import json
 import sys
 import time
 from datetime import datetime
-from socket import socket
+import socket
 from time import sleep
 
+from scapy.all import conf, get_if_addr
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
 from scapy.volatile import RandInt, RandShort
 
 from utils.traceroute_struct import Traceroute
-
-from scapy.arch import get_if_addr
-from scapy.interfaces import conf
 
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
@@ -62,24 +60,33 @@ def parse_packet(request_and_answer, current_ttl, elapsed_ms):
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
 
 
-def ephemeral_port_reserve():
-    with contextlib.closing(socket()) as s:
+def ephemeral_port_reserve(proto: str = "tcp"):
+    socketkind = socket.SOCK_STREAM
+    ipproto = socket.IPPROTO_TCP
+    if proto == "udp":
+        socketkind = socket.SOCK_DGRAM
+        ipproto = socket.IPPROTO_UDP
+    with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s:
         s.bind((SOURCE_IP_ADDRESS, 0))
         # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
-        s.listen(1)
+        if proto == "tcp":
+            s.listen(1)
         sockname = s.getsockname()
         # these three are necessary just to get the port into a TIME_WAIT state
-        with contextlib.closing(socket()) as s2:
+        with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s2:
             s2.connect(sockname)
-            sock, _ = s.accept()
-            with contextlib.closing(sock):
+            if proto == "tcp":
+                sock, _ = s.accept()
+                with contextlib.closing(sock):
+                    return sockname[1]
+            with contextlib.closing(s2):
                 return sockname[1]
 
 
 def send_packet_with_tcphandshake(this_request, timeout):
     timeout += 2
     ip_address = this_request[IP].dst
-    source_port = ephemeral_port_reserve()
+    source_port = ephemeral_port_reserve("tcp")
     destination_port = this_request[TCP].dport
     send_syn = IP(
         dst=ip_address, id=RandShort())/TCP(
@@ -118,10 +125,10 @@ def send_packet_with_tcphandshake(this_request, timeout):
 def send_single_packet(this_request, timeout):
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
-        this_request[TCP].sport = ephemeral_port_reserve()
+        this_request[TCP].sport = ephemeral_port_reserve("tcp")
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
-        this_request[UDP].sport = RandShort()
+        this_request[UDP].sport = ephemeral_port_reserve("udp")
         del(this_request[UDP].chksum)
     if this_request.haslayer(DNS):
         this_request.id = RandShort()
@@ -146,7 +153,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     if do_tcphandshake:
         request_and_answers, unanswered = send_packet_with_tcphandshake(
             this_request, timeout)
-        sleep(timeout) # maybe we should wait more
+        sleep(timeout)  # double sleep. maybe we should wait more
     else:
         request_and_answers, unanswered = send_single_packet(
             this_request, timeout)
