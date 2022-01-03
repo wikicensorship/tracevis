@@ -94,6 +94,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
     ans, unans = sr(send_syn, verbose=0, timeout=timeout)
     if len(ans) == 0:
         print("Error: No response to SYN packet")  # todo: xhdix
+        return ans, unans
     else:
         send_ack = IP(
             dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
@@ -153,12 +154,13 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     if do_tcphandshake:
         request_and_answers, unanswered = send_packet_with_tcphandshake(
             this_request, timeout)
-        sleep(timeout)  # double sleep. maybe we should wait more
     else:
         request_and_answers, unanswered = send_single_packet(
             this_request, timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
+    if do_tcphandshake:
+        sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
     if len(request_and_answers) == 0:
         return parse_packet(None, current_ttl, elapsed_ms)
     else:
