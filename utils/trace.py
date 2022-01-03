@@ -3,10 +3,10 @@ from __future__ import absolute_import, unicode_literals
 
 import contextlib
 import json
+import socket
 import sys
 import time
 from datetime import datetime
-import socket
 from time import sleep
 
 from scapy.all import conf, get_if_addr
@@ -15,7 +15,7 @@ from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
 from scapy.volatile import RandInt, RandShort
 
-from utils.traceroute_struct import Traceroute
+from utils.traceroute_struct import traceroute_data
 
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
@@ -206,14 +206,14 @@ def initialize_json_first_nodes(
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
         measurement_data[0].append(
-            Traceroute(
+            traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, timestamp=start_time
             )
         )
         if have_2_packet:
             measurement_data[1].append(
-                Traceroute(
+                traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, timestamp=start_time
                 )
@@ -288,6 +288,10 @@ def trace_route(
     do_tcphandshake = []
     was_successful = False
     global have_2_packet
+    if do_tcph1:
+        annotation_1 += " (+tcph)"
+    if do_tcph2:
+        annotation_2 += " (+tcph)"
     if request_packet_1 is None:
         print("packet is invalid!")
         exit()
