@@ -46,7 +46,7 @@ def copy_input_packets(os_name):
             " paste here the second packet hex dump start with the IP layer and then enter (optional) :")
         copy_packet_2 = IP(import_hexcap())
         print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-        do_tcph1 = yesno_second_packet(
+        do_tcph2 = yesno_second_packet(
             "Would you like to do a TCP Handshake before sending this packet?")
     print(
         " ********************************************************************** ")
