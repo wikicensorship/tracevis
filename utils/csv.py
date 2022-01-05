@@ -35,12 +35,13 @@ def parse_json(file_name: str) -> list:
         if "annotation" in measurement.keys():
             annot = measurement["annotation"]
         else:
-            annot = ""
+            annot = "-"
         for hop_row in measurement["result"]:
             hop = hop_row["hop"]
             res_from = []
             rtt = []
             ttl = []
+            summary = []
             skip_next = False
             for result in hop_row["result"]:
                 if skip_next:
@@ -52,6 +53,7 @@ def parse_json(file_name: str) -> list:
                     res_from.append(result["x"])
                     rtt.append(result["x"])
                     ttl.append(result["x"])
+                    summary.append("-")
                 else:
                     res_from.append(result["from"])
                     if "rtt" in result.keys():
@@ -59,6 +61,10 @@ def parse_json(file_name: str) -> list:
                     else:
                         rtt.append("*")
                     ttl.append(result["ttl"])
+                    if "summary" in result.keys():
+                        summary.append(result["summary"])
+                    else:
+                        summary.append("-")
             data.append({
                 "dst_addr": dst_addr,
                 "proto": proto,
@@ -72,7 +78,10 @@ def parse_json(file_name: str) -> list:
                 "ttl2": ttl[1],
                 "res_from3": res_from[2],
                 "rtt3": rtt[2],
-                "ttl3": ttl[2]
+                "ttl3": ttl[2],
+                "summary1": summary[0],
+                "summary2": summary[1],
+                "summary3": summary[2],
             })
     return data
 
