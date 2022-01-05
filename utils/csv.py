@@ -2,6 +2,23 @@
 import json
 import os.path
 
+csv_header_all = ""
+csv_blank_row = ""
+csv_prepared_row = ""
+
+
+def prepare_csv_variables(keys):
+    global csv_header_all
+    global csv_blank_row
+    global csv_prepared_row
+    for item in keys:
+        csv_header_all += item + ','
+        csv_blank_row += ','
+        csv_prepared_row += "{" + item + "},"
+    csv_header_all += '\r\n'
+    csv_blank_row += '\r\n'
+    csv_prepared_row += '\r\n'
+
 
 def parse_json(file_name: str) -> list:
     data = []
@@ -15,7 +32,10 @@ def parse_json(file_name: str) -> list:
     for measurement in json_data:
         dst_addr = measurement["dst_addr"]
         proto = measurement["proto"]
-        annot = measurement["annotation"]
+        if "annotation" in measurement.keys():
+            annot = measurement["annotation"]
+        else:
+            annot = ""
         for hop_row in measurement["result"]:
             hop = hop_row["hop"]
             res_from = []
@@ -57,37 +77,31 @@ def parse_json(file_name: str) -> list:
     return data
 
 
-def json2csv_raw(file_name: str) -> str:
-    csv_str = 'dst_addr,proto,annot,hop,res_from1,rtt1,ttl1,res_from2,rtt2,ttl2,res_from3,rtt3,ttl3\n'
-    data = parse_json(file_name)
+def json2csv_raw(data: list) -> str:
+    global csv_header_all
+    global csv_blank_row
+    global csv_prepared_row
+    csv_str = csv_header_all
     last_hop = 1
     for row in data:
         if row["hop"] < last_hop:
-            csv_str += ",,,,,,,,,,,,\n"
-        csv_str += "{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
-            row["dst_addr"], row["proto"], row["annot"], row["hop"],
-            row["res_from1"], row["rtt1"], row["ttl1"],
-            row["res_from2"], row["rtt2"], row["ttl2"],
-            row["res_from3"], row["rtt3"], row["ttl3"]
-        )
+            csv_str += csv_blank_row
+        csv_str += csv_prepared_row.format_map(row)
         last_hop = row["hop"]
     return csv_str
 
 
-def json2csv_clean(file_name: str) -> str:
-    csv_str = 'dst_addr,proto,annot,hop,res_from1,rtt1,ttl1,res_from2,rtt2,ttl2,res_from3,rtt3,ttl3\n'
-    data = parse_json(file_name)
+def json2csv_clean(data: list) -> str:
+    global csv_header_all
+    global csv_blank_row
+    global csv_prepared_row
+    csv_str = csv_header_all
     data = sorted(data, key=lambda d: d['hop'])
     last_hop = 1
     for row in data:
         if row["hop"] > last_hop:
-            csv_str += ",,,,,,,,,,,,\n"
-        csv_str += "{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
-            row["dst_addr"], row["proto"], row["annot"], row["hop"],
-            row["res_from1"], row["rtt1"], row["ttl1"],
-            row["res_from2"], row["rtt2"], row["ttl2"],
-            row["res_from3"], row["rtt3"], row["ttl3"]
-        )
+            csv_str += csv_blank_row
+        csv_str += csv_prepared_row.format_map(row)
         last_hop = row["hop"]
     return csv_str
 
@@ -95,12 +109,14 @@ def json2csv_clean(file_name: str) -> str:
 def json2csv(file_name: str, sorted: bool = True):
     if os.path.isfile(file_name):
         new_file_name = file_name.replace(".json", ".csv")
+        data = parse_json(file_name)
+        prepare_csv_variables(data[0].keys())
         with open(new_file_name, "w") as csvfile:
             csv = ""
             if sorted:
-                csv = json2csv_clean(file_name)
+                csv = json2csv_clean(data)
             else:
-                csv = json2csv_raw(file_name)
+                csv = json2csv_raw(data)
             if csv != "":
                 print("saving measurement in csv...")
                 csvfile.write(csv)
