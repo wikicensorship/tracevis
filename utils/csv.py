@@ -66,22 +66,22 @@ def parse_json(file_name: str) -> list:
                     else:
                         summary.append("-")
             data.append({
-                "dst_addr": dst_addr,
-                "proto": proto,
-                "annot": annot,
+                "destination_address": dst_addr,
+                "protocol": proto,
+                "annotation": annot,
                 "hop": hop,
-                "res_from1": res_from[0],
-                "rtt1": rtt[0],
-                "ttl1": ttl[0],
-                "res_from2": res_from[1],
-                "rtt2": rtt[1],
-                "ttl2": ttl[1],
-                "res_from3": res_from[2],
-                "rtt3": rtt[2],
-                "ttl3": ttl[2],
-                "summary1": summary[0],
-                "summary2": summary[1],
-                "summary3": summary[2],
+                "response_from_1": res_from[0],
+                "rtt_1": rtt[0],
+                "ttl_1": ttl[0],
+                "response_from_2": res_from[1],
+                "rtt_2": rtt[1],
+                "ttl_2": ttl[1],
+                "response_from_3": res_from[2],
+                "rtt_3": rtt[2],
+                "ttl_3": ttl[2],
+                "summary_1": summary[0],
+                "summary_2": summary[1],
+                "summary_3": summary[2],
             })
     return data
 
