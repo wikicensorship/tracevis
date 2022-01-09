@@ -140,7 +140,15 @@ def send_single_packet(this_request, timeout):
     return request_and_answers, unanswered
 
 
-def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshake):
+def retransmission_single_packet(this_request, timeout):
+    this_request[IP].id += 1
+    del(this_request[IP].chksum)
+    request_and_answers, unanswered = sr(
+        this_request, verbose=0, timeout=timeout)
+    return request_and_answers, unanswered
+
+
+def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshake, trace_retransmission):
     this_request = request_packet
     del(this_request[IP].src)
     this_request[IP].dst = request_ip
@@ -153,6 +161,9 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     start_time = time.perf_counter()
     if do_tcphandshake:
         request_and_answers, unanswered = send_packet_with_tcphandshake(
+            this_request, timeout)
+    elif trace_retransmission:
+        request_and_answers, unanswered = retransmission_single_packet(
             this_request, timeout)
     else:
         request_and_answers, unanswered = send_single_packet(
@@ -280,7 +291,8 @@ def trace_route(
         request_packet_2: str = "", name_prefix: str = "",
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
-        do_tcph1: bool = False, do_tcph2: bool = False
+        do_tcph1: bool = False, do_tcph2: bool = False,
+        trace_retransmission: bool = False
 ):
     check_for_permission()
     measurement_name = ""
@@ -296,10 +308,15 @@ def trace_route(
         print("packet is invalid!")
         exit()
     if request_packet_2 == "":
+        if trace_retransmission:
+            request_packet_1[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
         request_packets.append(request_packet_1)
         do_tcphandshake.append(do_tcph1)
         have_2_packet = False
     else:
+        if trace_retransmission:
+            request_packet_1[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
+            request_packet_2[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
         request_packets.append(request_packet_1)
         request_packets.append(request_packet_2)
         do_tcphandshake.append(do_tcph1)
@@ -350,7 +367,7 @@ def trace_route(
                         if not_yet_destination:
                             answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
                                 request_packets[access_block_steps], request_ips[ip_steps],
-                                current_ttl, timeout, do_tcphandshake[access_block_steps])
+                                current_ttl, timeout, do_tcphandshake[access_block_steps], trace_retransmission)
                             measurement_data[access_block_steps][ip_steps].add_hop(
                                 current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                             )
@@ -363,7 +380,7 @@ def trace_route(
                     else:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
                             request_packets[access_block_steps], request_ips[ip_steps],
-                            current_ttl, timeout, do_tcphandshake[access_block_steps])
+                            current_ttl, timeout, do_tcphandshake[access_block_steps], trace_retransmission)
                         measurement_data[access_block_steps][ip_steps].add_hop(
                             current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                         )

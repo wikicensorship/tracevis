@@ -61,6 +61,8 @@ def get_args():
                         help="annotation for the first packets (dns and packet trace)")
     parser.add_argument('--annot2', type=str,
                         help="annotation for the second packets (dns and packet trace)")
+    parser.add_argument('--rexmit', action='store_true',
+                        help="change the behavior of the trace route to be similar to doing retransmission")
     args = parser.parse_args()
     return args
 
@@ -84,6 +86,7 @@ def main(args):
     was_successful = False
     measurement_path = ""
     edge_lable = "backttl"
+    trace_retransmission = False
     output_dir = os.getenv('TRACEVIS_OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -109,6 +112,8 @@ def main(args):
         annotation_2 = args["annot2"]
     if args.get("label"):
         edge_lable = args["label"].lower()
+    if args.get("rexmit"):
+        trace_retransmission = True
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix = name_prefix + "dns"
@@ -134,7 +139,8 @@ def main(args):
             request_packet_2=packet_2, name_prefix=name_prefix,
             annotation_1=annotation_1, annotation_2=annotation_2,
             continue_to_max_ttl=continue_to_max_ttl,
-            do_tcph1=do_tcph1, do_tcph2=do_tcph2)
+            do_tcph1=do_tcph1, do_tcph2=do_tcph2,
+            trace_retransmission=trace_retransmission)
     if args.get("ripe"):
         measurement_ids = ""
         if args.get("ripemids"):
