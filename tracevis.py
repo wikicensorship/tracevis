@@ -61,7 +61,7 @@ def get_args():
                         help="annotation for the first packets (dns and packet trace)")
     parser.add_argument('--annot2', type=str,
                         help="annotation for the second packets (dns and packet trace)")
-    parser.add_argument('--retransmsn', action='store_true',
+    parser.add_argument('--rexmit', action='store_true',
                         help="change the behavior of the trace route to be similar to doing retransmission")
     args = parser.parse_args()
     return args
@@ -112,7 +112,7 @@ def main(args):
         annotation_2 = args["annot2"]
     if args.get("label"):
         edge_lable = args["label"].lower()
-    if args.get("retransmsn"):
+    if args.get("rexmit"):
         trace_retransmission = True
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
