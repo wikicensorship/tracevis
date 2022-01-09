@@ -308,10 +308,15 @@ def trace_route(
         print("packet is invalid!")
         exit()
     if request_packet_2 == "":
+        if trace_retransmission:
+            request_packet_1[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
         request_packets.append(request_packet_1)
         do_tcphandshake.append(do_tcph1)
         have_2_packet = False
     else:
+        if trace_retransmission:
+            request_packet_1[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
+            request_packet_2[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
         request_packets.append(request_packet_1)
         request_packets.append(request_packet_2)
         do_tcphandshake.append(do_tcph1)
