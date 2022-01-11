@@ -232,6 +232,10 @@ def initialize_json_first_nodes(
 
 
 def get_proto(request_packets):
+    packet_1_proto = ""
+    packet_2_proto = ""
+    if (request_packets[0]).haslayer(IP):
+        packet_1_proto = "IP"
     if (request_packets[0]).haslayer(TCP):
         packet_1_proto = "TCP"
     elif (request_packets[0]).haslayer(UDP):
@@ -239,15 +243,15 @@ def get_proto(request_packets):
     elif(request_packets[0]).haslayer(ICMP):
         packet_1_proto = "ICMP"
     if have_2_packet:
+        if (request_packets[1]).haslayer(IP):
+            packet_2_proto = "IP"
         if (request_packets[1]).haslayer(TCP):
             packet_2_proto = "TCP"
         elif (request_packets[1]).haslayer(UDP):
             packet_2_proto = "UDP"
         elif(request_packets[1]).haslayer(ICMP):
             packet_2_proto = "ICMP"
-        return packet_1_proto, packet_2_proto
-    else:
-        return packet_1_proto, ""
+    return packet_1_proto, packet_2_proto
 
 
 def save_measurement_data(
@@ -298,6 +302,7 @@ def trace_route(
     measurement_name = ""
     request_packets = []
     do_tcphandshake = []
+    request_ips = []
     was_successful = False
     global have_2_packet
     if do_tcph1:
@@ -309,20 +314,35 @@ def trace_route(
         exit()
     if request_packet_2 == "":
         if trace_retransmission:
-            request_packet_1[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
+            request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
         request_packets.append(request_packet_1)
         do_tcphandshake.append(do_tcph1)
         have_2_packet = False
     else:
         if trace_retransmission:
-            request_packet_1[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
-            request_packet_2[IP].id += 15 # == sysctl net.ipv4.tcp_retries2
+            request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
+            request_packet_2[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
         request_packets.append(request_packet_1)
         request_packets.append(request_packet_2)
         do_tcphandshake.append(do_tcph1)
         do_tcphandshake.append(do_tcph2)
         have_2_packet = True
-    request_ips = ip_list
+    if ip_list == "":
+        if request_packet_1[IP].dst == "":
+            if have_2_packet:
+                if request_packet_2[IP].dst == "":
+                    print("You must set at least one IP. (--ips || -i)")
+                    exit()
+            else:
+                print("You must set at least one IP. (--ips || -i)")
+                exit()
+        else:
+            request_ips.append(request_packet_1[IP].dst)
+        if have_2_packet:
+            if request_packet_2[IP].dst != "":
+                request_ips.append(request_packet_2[IP].dst)
+    else:
+        request_ips = ip_list
     if name_prefix != "":
         measurement_name = name_prefix + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -392,6 +412,7 @@ def trace_route(
                         " · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                     sleep(sleep_time)
                     ip_steps += 1
+                    was_successful = True
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
                         ip_steps = 0
                         access_block_steps = 1
@@ -403,9 +424,11 @@ def trace_route(
                     " ********************************************************************** ")
                 print(
                     " ********************************************************************** ")
-    was_successful = True
-    print("saving measurement data...")
-    data_path = save_measurement_data(
-        request_ips, measurement_name, continue_to_max_ttl, output_dir)
-    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
-    return(was_successful, data_path)
+    if was_successful:
+        print("saving measurement data...")
+        data_path = save_measurement_data(
+            request_ips, measurement_name, continue_to_max_ttl, output_dir)
+        print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
+        return(was_successful, data_path)
+    else:
+        return(was_successful, "")
