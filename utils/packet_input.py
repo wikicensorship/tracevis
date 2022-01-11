@@ -33,6 +33,9 @@ def copy_input_packets(os_name):
         " paste here the first packet hex dump start with the IP layer and then enter :")
     copy_packet_1 = IP(import_hexcap())
     print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+    print(" . . . - . developed view of this packet:")
+    copy_packet_1.show()
+    print(" . . . - .     . . . - .     . . . - .     . . . - . ")
     if os_name == "Linux":
         do_tcph1 = yesno_second_packet(
             "Would you like to do a TCP Handshake before sending this packet?"
@@ -45,6 +48,9 @@ def copy_input_packets(os_name):
         print(
             " paste here the second packet hex dump start with the IP layer and then enter (optional) :")
         copy_packet_2 = IP(import_hexcap())
+        print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+        print(" . . . - . developed view of this packet:")
+        copy_packet_2.show()
         print(" . . . - .     . . . - .     . . . - .     . . . - . ")
         do_tcph2 = yesno_second_packet(
             "Would you like to do a TCP Handshake before sending this packet?")
