@@ -328,9 +328,9 @@ def trace_route(
         do_tcphandshake.append(do_tcph2)
         have_2_packet = True
     if ip_list == "":
-        if request_packet_1[IP].dst == "":
+        if request_packet_1[IP].dst == "" or request_packet_1[IP].dst == LOCALHOST:
             if have_2_packet:
-                if request_packet_2[IP].dst == "":
+                if request_packet_2[IP].dst == "" or request_packet_2[IP].dst == LOCALHOST:
                     print("You must set at least one IP. (--ips || -i)")
                     exit()
             else:
@@ -339,7 +339,7 @@ def trace_route(
         else:
             request_ips.append(request_packet_1[IP].dst)
         if have_2_packet:
-            if request_packet_2[IP].dst != "":
+            if request_packet_2[IP].dst != "" or request_packet_2[IP].dst != LOCALHOST:
                 request_ips.append(request_packet_2[IP].dst)
     else:
         request_ips = ip_list
