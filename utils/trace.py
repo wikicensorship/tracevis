@@ -327,7 +327,7 @@ def trace_route(
         do_tcphandshake.append(do_tcph1)
         do_tcphandshake.append(do_tcph2)
         have_2_packet = True
-    if ip_list == "":
+    if len(ip_list) == 0:
         if request_packet_1[IP].dst == "" or request_packet_1[IP].dst == LOCALHOST:
             if have_2_packet:
                 if request_packet_2[IP].dst == "" or request_packet_2[IP].dst == LOCALHOST:
