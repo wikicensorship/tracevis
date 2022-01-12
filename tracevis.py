@@ -126,7 +126,7 @@ def main(args):
         do_traceroute = True
         name_prefix = name_prefix + "packet"
         packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(
-            OS_NAME)
+            OS_NAME, trace_retransmission)
         if do_tcph1 or do_tcph2:
             name_prefix = name_prefix + "-tcph"
     if do_traceroute:
