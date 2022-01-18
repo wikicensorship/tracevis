@@ -130,6 +130,7 @@ def send_single_packet(this_request, timeout):
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = ephemeral_port_reserve("udp")
+        del(this_request[UDP].len)
         del(this_request[UDP].chksum)
     if this_request.haslayer(DNS):
         this_request.id = RandShort()
