@@ -15,9 +15,9 @@ def prepare_csv_variables(keys):
         csv_header_all += item + ','
         csv_blank_row += ','
         csv_prepared_row += "{" + item + "},"
-    csv_header_all += '\r\n'
-    csv_blank_row += '\r\n'
-    csv_prepared_row += '\r\n'
+    csv_header_all += '\n'
+    csv_blank_row += '\n'
+    csv_prepared_row += '\n'
 
 
 def parse_json(file_name: str) -> list:
