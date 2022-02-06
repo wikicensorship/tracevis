@@ -127,6 +127,8 @@ def send_single_packet(this_request, timeout):
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
         this_request[TCP].sport = ephemeral_port_reserve("tcp")
+        if this_request[TCP].flags == "S":
+            this_request[TCP].seq = RandInt()
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = ephemeral_port_reserve("udp")
