@@ -84,18 +84,31 @@ def ephemeral_port_reserve(proto: str = "tcp"):
 
 
 def send_packet_with_tcphandshake(this_request, timeout):
-    timeout += 2
     ip_address = this_request[IP].dst
-    source_port = ephemeral_port_reserve("tcp")
     destination_port = this_request[TCP].dport
-    send_syn = IP(
-        dst=ip_address, id=RandShort())/TCP(
-        sport=source_port, dport=destination_port, seq=RandInt(), flags="S")
-    ans, unans = sr(send_syn, verbose=0, timeout=timeout)
+    ans = []
+    max_repeat = 0
+    # here we are trying to do a new TCP handshake every time because
+    # we are trying to trace packet data, not SYN packet. And
+    # we know about intermittent stream blocking
+    while len(ans) == 0 and max_repeat < 5:
+        source_port = ephemeral_port_reserve("tcp")
+        send_syn = IP(
+            dst=ip_address, id=RandShort())/TCP(
+            sport=source_port, dport=destination_port, seq=RandInt(), flags="S")
+        tcp_handshake_timeout = timeout + max_repeat
+        ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
+        if len(ans) == 0:
+            print("Warning: No response to SYN packet yet")
+        max_repeat += 1
     if len(ans) == 0:
-        print("Error: No response to SYN packet")  # todo: xhdix
+        print("Error: doing TCP handshake failed "
+              + str(max_repeat)
+              + " times. You should test with PingVis instead")  # todo: xhdix
+        sleep(timeout + max_repeat)  # double sleep (￣o￣) . z Z.
         return ans, unans
     else:
+        timeout += 2  # we should wait more for data packets.
         send_ack = IP(
             dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
             sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
@@ -361,7 +374,8 @@ def trace_route(
     else:
         measurement_name = "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
     repeat_all_steps = 0
-    packet_1_proto, packet_2_proto, packet_1_port, packet_2_port = get_packets_info(request_packets)
+    packet_1_proto, packet_2_proto, packet_1_port, packet_2_port = get_packets_info(
+        request_packets)
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=packet_1_proto, packet_2_proto=packet_2_proto,
