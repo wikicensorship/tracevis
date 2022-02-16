@@ -12,6 +12,8 @@ import utils.ripe_atlas
 import utils.trace
 import utils.vis
 
+import textwrap
+
 TIMEOUT = 1
 MAX_TTL = 50
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
@@ -22,13 +24,20 @@ OS_NAME = platform.system()
 def get_args():
     parser = argparse.ArgumentParser(
         description='Traceroute with any packet. \
-            Visualize the routes. Discover Middleboxes and Firewalls')
+            Visualize the routes. Discover Middleboxes and Firewalls', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-n', '--name', action='store',
                         help="prefix for the graph file name")
     parser.add_argument('-i', '--ips', type=str,
                         help="add comma-separated IPs (up to 6 for two packet and up to 12 for one packet)")
     parser.add_argument('-p', '--packet', action='store_true',
                         help="receive one or two packets from the IP layer via the terminal input and trace route with")
+    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['stdin','file','hex','interactive'], default="hex",
+                        help=textwrap.dedent("""Select packet input method 
+stdin: read packet from stdin (pipe)
+file: read packet from a file (set via --packet-file)
+hex: paste hex dump of packet into interactive shell 
+interactive: use full featured scapy and python console to craft packet\n\n"""))
+    parser.add_argument("--packet-file", dest='packet_file', type=str, help="Packet file path if input method is 'file'")
     parser.add_argument('--dns', action='store_true',
                         help="trace route with a simple DNS over UDP packet")
     parser.add_argument('--dnstcp', action='store_true',
