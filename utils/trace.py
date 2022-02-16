@@ -116,7 +116,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
         send(send_ack, verbose=0)
         send_data = this_request
         del(send_data[IP].src)
-        send_data[IP].id = ans[0][0][IP].id + 1
+        send_data[IP].id = ans[0][0][IP].id + 2
         send_data[TCP].sport = source_port
         send_data[TCP].seq = ans[0][1][TCP].ack
         send_data[TCP].ack = ans[0][1][TCP].seq + 1
