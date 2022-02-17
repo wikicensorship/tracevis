@@ -164,7 +164,8 @@ def send_packet_with_tcphandshake(this_request, timeout):
     else:
         timeout += 2  # we should wait more for data packets.
         syn_ack_timestamp = get_timestamp(ans[0][1][TCP].options)
-        new_timestamp = new_timestamp + int(time.time() - timestamp_start)
+        new_timestamp = new_timestamp + \
+            int((time.time() - timestamp_start) * 1000)
         ack_tcp_options = generate_ack_tcp_options(
             new_timestamp, syn_ack_timestamp)
         send_ack = IP(
