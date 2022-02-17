@@ -38,14 +38,15 @@ def copy_input_packets(os_name: str, trace_retransmission: bool):
     print(" . . . - .     . . . - .     . . . - .     . . . - . ")
     if not trace_retransmission:
         if copy_packet_1.haslayer(TCP):
-            if os_name == "Linux":
-                do_tcph1 = yesno_second_packet(
-                    "Would you like to do a TCP Handshake before sending this packet?"
-                    + firewall_commands_help)
-            else:
-                do_tcph1 = yesno_second_packet(
-                    "Would you like to do a TCP Handshake before sending this packet?")
-            print(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
+            if copy_packet_1[TCP].flags == "PA":
+                if os_name == "Linux":
+                    do_tcph1 = yesno_second_packet(
+                        "Would you like to do a TCP Handshake before sending this packet?"
+                        + firewall_commands_help)
+                else:
+                    do_tcph1 = yesno_second_packet(
+                        "Would you like to do a TCP Handshake before sending this packet?")
+                print(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
         if yesno_second_packet("Would you like to add a second packet"):
             print(
                 " paste here the second packet hex dump start with the IP layer and then enter (optional) :")
@@ -55,8 +56,11 @@ def copy_input_packets(os_name: str, trace_retransmission: bool):
             copy_packet_2.show()
             print(" . . . - .     . . . - .     . . . - .     . . . - . ")
             if copy_packet_1.haslayer(TCP):
-                do_tcph2 = yesno_second_packet(
-                    "Would you like to do a TCP Handshake before sending this packet?")
+                if copy_packet_1[TCP].flags == "PA":
+                    do_tcph2 = yesno_second_packet(
+                        "Would you like to do a TCP Handshake before sending this packet?")
+                    print(
+                        " ********************************************************************** ")
     print(
         " ********************************************************************** ")
     return copy_packet_1, copy_packet_2, do_tcph1, do_tcph2
