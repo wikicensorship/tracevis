@@ -2,7 +2,6 @@
 from __future__ import absolute_import, unicode_literals
 
 import contextlib
-from email.policy import default
 import json
 import platform
 import socket
@@ -15,7 +14,7 @@ from scapy.all import conf, get_if_addr
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
-from scapy.volatile import RandInt, RandShort, AutoTime
+from scapy.volatile import RandInt, RandShort
 
 from utils.traceroute_struct import traceroute_data
 
@@ -203,6 +202,9 @@ def send_single_packet(this_request, timeout):
         this_request[TCP].sport = ephemeral_port_reserve("tcp")
         if this_request[TCP].flags == "S":
             this_request[TCP].seq = RandInt()
+        timestamp_start, new_timestamp = get_new_timestamp()
+        this_request[TCP].options = tcp_options_correction(
+            this_request[TCP].options, new_timestamp, int(timestamp_start))
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = ephemeral_port_reserve("udp")
