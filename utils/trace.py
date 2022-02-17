@@ -2,7 +2,9 @@
 from __future__ import absolute_import, unicode_literals
 
 import contextlib
+from email.policy import default
 import json
+import platform
 import socket
 import sys
 import time
@@ -13,7 +15,7 @@ from scapy.all import conf, get_if_addr
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
-from scapy.volatile import RandInt, RandShort
+from scapy.volatile import RandInt, RandShort, AutoTime
 
 from utils.traceroute_struct import traceroute_data
 
@@ -22,6 +24,7 @@ LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
 measurement_data = [[], []]
+OS_NAME = platform.system()
 
 
 def parse_packet(request_and_answer, current_ttl, elapsed_ms):
@@ -83,9 +86,61 @@ def ephemeral_port_reserve(proto: str = "tcp"):
                 return sockname[1]
 
 
+def tcp_options_correction(tcp_options, new_timestamp, syn_ack_timestamp):
+    new_options = []
+    default_timestamp = ('Timestamp', (new_timestamp, syn_ack_timestamp))
+    for attr in tcp_options:
+        if 'Timestamp' == str(attr[0]):
+            new_options.append(default_timestamp)
+        else:
+            new_options.append(attr)
+    return new_options
+
+
+def generate_syn_tcp_options(new_timestamp):
+    if OS_NAME == "Linux":
+        tcp_options = [('MSS', 1460), ('SAckOK', b''),
+                       ('Timestamp', (new_timestamp, 0)), ('NOP', None), ('WScale', 7)]
+        return tcp_options
+    elif OS_NAME == "Windows":
+        tcp_options = [('MSS', 1460), ('NOP', None),
+                       ('NOP', None), ('SAckOK', b'')]
+        return tcp_options
+    elif OS_NAME == "Darwin":
+        tcp_options = [('MSS', 1460), ('NOP', None), ('WScale', 6), ('NOP', None),
+                       ('NOP', None), ('Timestamp', (new_timestamp, 0)), ('SAckOK', b''), ('EOL', None)]
+        return tcp_options
+    else:
+        return []
+
+
+def generate_ack_tcp_options(new_timestamp, syn_ack_timestamp):
+    if OS_NAME == "Linux" or OS_NAME == "Darwin":
+        tcp_options = [('NOP', None), ('NOP', None),
+                       ('Timestamp', (new_timestamp, syn_ack_timestamp))]
+        return tcp_options
+    else:
+        return []
+
+
+def get_timestamp(tcp_options):
+    default_timestamp = 0
+    for attr in tcp_options:
+        if 'Timestamp' == str(attr[0]):
+            default_timestamp = attr[1][0]
+    return default_timestamp
+
+
+def get_new_timestamp():
+    timestamp_now = time.time()
+    return timestamp_now, (int(timestamp_now) ^ int(RandInt()))
+
+
 def send_packet_with_tcphandshake(this_request, timeout):
+    timestamp_start, new_timestamp = get_new_timestamp()
     ip_address = this_request[IP].dst
     destination_port = this_request[TCP].dport
+    syn_tcp_options = generate_syn_tcp_options(new_timestamp)
     ans = []
     max_repeat = 0
     # here we are trying to do a new TCP handshake every time because
@@ -95,7 +150,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
         source_port = ephemeral_port_reserve("tcp")
         send_syn = IP(
             dst=ip_address, id=RandShort())/TCP(
-            sport=source_port, dport=destination_port, seq=RandInt(), flags="S")
+            sport=source_port, dport=destination_port, seq=RandInt(), flags="S", options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
         ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
         if len(ans) == 0:
@@ -109,10 +164,14 @@ def send_packet_with_tcphandshake(this_request, timeout):
         return ans, unans
     else:
         timeout += 2  # we should wait more for data packets.
+        syn_ack_timestamp = get_timestamp(ans[0][1][TCP].options)
+        new_timestamp = new_timestamp + int(time.time() - timestamp_start)
+        ack_tcp_options = generate_ack_tcp_options(
+            new_timestamp, syn_ack_timestamp)
         send_ack = IP(
             dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
             sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
-            ack=ans[0][1][TCP].seq + 1, flags="A")
+            ack=ans[0][1][TCP].seq + 1, flags="A", options=ack_tcp_options)
         send(send_ack, verbose=0)
         send_data = this_request
         del(send_data[IP].src)
@@ -120,6 +179,8 @@ def send_packet_with_tcphandshake(this_request, timeout):
         send_data[TCP].sport = source_port
         send_data[TCP].seq = ans[0][1][TCP].ack
         send_data[TCP].ack = ans[0][1][TCP].seq + 1
+        send_data[TCP].options = tcp_options_correction(
+            send_data[TCP].options, new_timestamp, syn_ack_timestamp)
         del(send_data[TCP].chksum)
         del(send_data[IP].len)
         del(send_data[IP].chksum)
