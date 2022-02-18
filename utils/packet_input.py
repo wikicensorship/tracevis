@@ -31,6 +31,7 @@ def copy_input_packets(os_name: str, trace_retransmission: bool):
         " ********************************************************************** ")
     print(
         " paste here the first packet hex dump start with the IP layer and then enter :")
+    print(" . . . - .     . . . - .     . . . - .     . . . - . ")
     copy_packet_1 = IP(import_hexcap())
     print(" . . . - .     . . . - .     . . . - .     . . . - . ")
     print(" . . . - . developed view of this packet:")
@@ -50,17 +51,16 @@ def copy_input_packets(os_name: str, trace_retransmission: bool):
         if yesno_second_packet("Would you like to add a second packet"):
             print(
                 " paste here the second packet hex dump start with the IP layer and then enter (optional) :")
+            print(" . . . - .     . . . - .     . . . - .     . . . - . ")
             copy_packet_2 = IP(import_hexcap())
             print(" . . . - .     . . . - .     . . . - .     . . . - . ")
             print(" . . . - . developed view of this packet:")
             copy_packet_2.show()
             print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-            if copy_packet_1.haslayer(TCP):
-                if copy_packet_1[TCP].flags == "PA":
+            if copy_packet_2.haslayer(TCP):
+                if copy_packet_2[TCP].flags == "PA":
                     do_tcph2 = yesno_second_packet(
                         "Would you like to do a TCP Handshake before sending this packet?")
-                    print(
-                        " ********************************************************************** ")
     print(
         " ********************************************************************** ")
     return copy_packet_1, copy_packet_2, do_tcph1, do_tcph2
