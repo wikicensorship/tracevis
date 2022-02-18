@@ -2,6 +2,8 @@
 from __future__ import absolute_import, unicode_literals
 
 import contextlib
+from csv import Sniffer
+from itertools import count
 import json
 import platform
 import socket
@@ -185,7 +187,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
         del(send_data[IP].len)
         del(send_data[IP].chksum)
         request_and_answers, unanswered = sr(
-            send_data, verbose=0, timeout=timeout)
+            send_data, verbose=0, timeout=timeout, multi=True)
         # send_fin = send_ack.copy() # todo: xhdix
         # send_fin[IP].id=ans[0][0][IP].id + 1
         # send_fin[TCP].flags = "FA"
@@ -255,7 +257,18 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     if len(request_and_answers) == 0:
         return parse_packet(None, current_ttl, elapsed_ms)
     else:
-        return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+        if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
+            request_and_answers.show()
+            if len(request_and_answers) > 1:
+                if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
+                    print("first answer is from middlebox (╯°□°)╯︵ ┻━┻")
+                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+                else:
+                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+            else:
+                return parse_packet(None, current_ttl, elapsed_ms) #we need PA from server, not ACK from middlebox
+        else:
+            return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
 
 
 def already_reached_destination(previous_node_id, current_node_ip):
