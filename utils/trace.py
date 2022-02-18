@@ -2,8 +2,6 @@
 from __future__ import absolute_import, unicode_literals
 
 import contextlib
-from csv import Sniffer
-from itertools import count
 import json
 import platform
 import socket
@@ -266,7 +264,8 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
                 else:
                     return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
             else:
-                return parse_packet(None, current_ttl, elapsed_ms) #we need PA from server, not ACK from middlebox
+                # we need PA from server, not ACK from middlebox
+                return parse_packet(None, current_ttl, elapsed_ms)
         else:
             return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
 
