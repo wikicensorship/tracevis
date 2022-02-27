@@ -121,7 +121,7 @@ def main(args):
         trace_with_retransmission = True
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
-        name_prefix = name_prefix + "dns"
+        name_prefix += + "dns"
         packet_1, annotation_1, packet_2, annotation_2 = utils.dns.get_dns_packets(
             blocked_address=blocked_address, accessible_address=accessible_address,
             dns_over_tcp=(args["dnstcp"]))
@@ -129,11 +129,13 @@ def main(args):
             request_ips = DEFAULT_REQUEST_IPS
     if args.get("packet"):
         do_traceroute = True
-        name_prefix = name_prefix + "packet"
+        name_prefix += + "packet"
         packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(
             OS_NAME, trace_retransmission)
         if do_tcph1 or do_tcph2:
-            name_prefix = name_prefix + "-tcph"
+            name_prefix += + "-tcph"
+    if trace_with_retransmission:
+        name_prefix += "-rexmit2"
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
