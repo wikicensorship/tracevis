@@ -256,15 +256,19 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
         return parse_packet(None, current_ttl, elapsed_ms)
     else:
         if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
-            request_and_answers.show()
+            # request_and_answers.show()
+            request_and_answers.summary()
             if len(request_and_answers) > 1:
                 if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
-                    print("first answer is from middlebox (╯°□°)╯︵ ┻━┻")
+                    # todo xhdix: flag first hop as middlebox
+                    print("--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
                     return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
                 else:
                     return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+            # we need PA from server, not ACK from middlebox
+            elif request_and_answers[0][1][TCP].flags != "A":
+                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
             else:
-                # we need PA from server, not ACK from middlebox
                 return parse_packet(None, current_ttl, elapsed_ms)
         else:
             return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
