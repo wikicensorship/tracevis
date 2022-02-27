@@ -228,28 +228,31 @@ def retransmission_single_packet(this_request, timeout):
     return request_and_answers, unanswered
 
 
-def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshake, trace_retransmission):
+def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshake, trace_retransmission, do_not_parse):
     this_request = request_packet
     del(this_request[IP].src)
     this_request[IP].dst = request_ip
     this_request[IP].ttl = current_ttl
-    print(">>>request:"
-          + "   ip.dst: " + request_ip
-          + "   ip.ttl: " + str(current_ttl))
+    if not do_not_parse:
+        print(">>>request:"
+            + "   ip.dst: " + request_ip
+            + "   ip.ttl: " + str(current_ttl))
     request_and_answers = []
     unanswered = []
     start_time = time.perf_counter()
-    if do_tcphandshake:
-        request_and_answers, unanswered = send_packet_with_tcphandshake(
-            this_request, timeout)
-    elif trace_retransmission:
+    if trace_retransmission:
         request_and_answers, unanswered = retransmission_single_packet(
+            this_request, timeout)
+    elif do_tcphandshake:
+        request_and_answers, unanswered = send_packet_with_tcphandshake(
             this_request, timeout)
     else:
         request_and_answers, unanswered = send_single_packet(
             this_request, timeout)
     end_time = time.perf_counter()
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
+    if do_not_parse:
+        return request_and_answers, unanswered
     if do_tcphandshake:
         sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
     if len(request_and_answers) == 0:
@@ -367,6 +370,23 @@ def save_measurement_data(
     return data_path
 
 
+def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
+    request_packets_for_rexmit = [[],[]]
+    req_step = 0
+    for req_packet in request_packets:
+        for dst_ip in request_ips:
+            new_packet = req_packet.copy()
+            request_and_answers, unanswered = send_packet(
+                                new_packet, dst_ip,
+                                0, 1, do_tcphandshake[req_step], False, True)
+            if len(request_and_answers) != 0:
+                request_packets_for_rexmit[req_step].append(request_and_answers[0][0].copy())
+            else:
+                request_packets_for_rexmit[req_step].append(unanswered[0][0].copy())
+        req_step = 1
+    return request_packets_for_rexmit
+
+
 def check_for_permission():
     try:
         this_request = IP(
@@ -385,7 +405,7 @@ def trace_route(
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
         do_tcph1: bool = False, do_tcph2: bool = False,
-        trace_retransmission: bool = False
+        trace_retransmission: bool = False, trace_with_retransmission: bool = False
 ):
     check_for_permission()
     measurement_name = ""
@@ -448,6 +468,10 @@ def trace_route(
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < 3:
         repeat_all_steps += 1
+        request_packets_for_rexmit= []
+        if trace_with_retransmission:
+            request_packets_for_rexmit = generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake)
+            trace_retransmission = True
         previous_node_ids = initialize_first_nodes(request_ips)
         for current_ttl in range(1, max_ttl + 1):
             if not continue_to_max_ttl and are_equal(request_ips, previous_node_ids):
@@ -474,11 +498,17 @@ def trace_route(
                     not_yet_destination = not (already_reached_destination(
                         previous_node_ids[access_block_steps][ip_steps],
                         request_ips[ip_steps]))
+                    current_packet = None
+                    if trace_with_retransmission:
+                        current_packet = request_packets_for_rexmit[access_block_steps][ip_steps]
+                    else:
+                        current_packet = request_packets[access_block_steps]
                     if not continue_to_max_ttl:
                         if not_yet_destination:
                             answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
-                                request_packets[access_block_steps], request_ips[ip_steps],
-                                current_ttl, timeout, do_tcphandshake[access_block_steps], trace_retransmission)
+                                current_packet, request_ips[ip_steps],
+                                current_ttl, timeout, do_tcphandshake[access_block_steps],
+                                trace_retransmission, False)
                             measurement_data[access_block_steps][ip_steps].add_hop(
                                 current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                             )
@@ -490,8 +520,9 @@ def trace_route(
                             )
                     else:
                         answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
-                            request_packets[access_block_steps], request_ips[ip_steps],
-                            current_ttl, timeout, do_tcphandshake[access_block_steps], trace_retransmission)
+                            current_packet, request_ips[ip_steps],
+                            current_ttl, timeout, do_tcphandshake[access_block_steps],
+                            trace_retransmission, False)
                         measurement_data[access_block_steps][ip_steps].add_hop(
                             current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
                         )
