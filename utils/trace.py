@@ -26,7 +26,7 @@ measurement_data = [[], []]
 OS_NAME = platform.system()
 
 
-def parse_packet(request_and_answer, current_ttl, elapsed_ms):
+def parse_packet(request_and_answer, current_ttl, elapsed_ms, summary_postfix=""):
     if request_and_answer is not None:
         req_answer = request_and_answer[1]
         packet_send_time = request_and_answer[0].sent_time
@@ -51,6 +51,7 @@ def parse_packet(request_and_answer, current_ttl, elapsed_ms):
         answer_summary = req_answer.summary()
         print("      " + answer_summary)
         print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
+        answer_summary += " . - - . - . " + summary_postfix
         return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
     else:
         print("              *** no response *** ")
@@ -264,23 +265,26 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     else:
         if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
             # request_and_answers.summary()
-            print(request_and_answers.summary)
+            summary_postfix = str(request_and_answers.summary)
+            print("    " + summary_postfix)
             if len(request_and_answers) > 1:
                 if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
                     # todo xhdix: flag the first hop as a middlebox
                     print(
                         "--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
-                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
+                elif request_and_answers[0][1][TCP].flags in ["R", "RA", "F", "FA"]:
+                    return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
                 else:
-                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
             # we need PA from server, not ACK from middlebox
             elif request_and_answers[0][1][TCP].flags != "A":
-                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
             # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
             elif request_and_answers[0][1][TCP].flags == "A" and request_and_answers[0][1].haslayer(Raw):
-                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
             else:
-                return parse_packet(None, current_ttl, elapsed_ms)
+                return parse_packet(None, current_ttl, elapsed_ms, summary_postfix)
         else:
             return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
 
