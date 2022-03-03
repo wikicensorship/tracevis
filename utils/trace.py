@@ -273,6 +273,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
                     print(
                         "--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
                     return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
+                # todo xhdix: flag as middlebox if [0][1][TCP].flags in ["R", "RA", "F", "FA"] and [1][1].haslayer(ICMP
                 elif request_and_answers[0][1][TCP].flags in ["R", "RA", "F", "FA"]:
                     return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
                 else:
