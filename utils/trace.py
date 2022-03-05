@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 
 import contextlib
 import json
+import platform
 import socket
 import sys
 import time
@@ -22,6 +23,7 @@ LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
 measurement_data = [[], []]
+OS_NAME = platform.system()
 
 
 def parse_packet(request_and_answer, current_ttl, elapsed_ms):
@@ -83,35 +85,107 @@ def ephemeral_port_reserve(proto: str = "tcp"):
                 return sockname[1]
 
 
+def tcp_options_correction(tcp_options, new_timestamp, syn_ack_timestamp):
+    new_options = []
+    default_timestamp = ('Timestamp', (new_timestamp, syn_ack_timestamp))
+    for attr in tcp_options:
+        if 'Timestamp' == str(attr[0]):
+            new_options.append(default_timestamp)
+        else:
+            new_options.append(attr)
+    return new_options
+
+
+def generate_syn_tcp_options(new_timestamp):
+    if OS_NAME == "Linux":
+        tcp_options = [('MSS', 1460), ('SAckOK', b''),
+                       ('Timestamp', (new_timestamp, 0)), ('NOP', None), ('WScale', 7)]
+        return tcp_options
+    elif OS_NAME == "Windows":
+        tcp_options = [('MSS', 1460), ('NOP', None),
+                       ('NOP', None), ('SAckOK', b'')]
+        return tcp_options
+    elif OS_NAME == "Darwin":
+        tcp_options = [('MSS', 1460), ('NOP', None), ('WScale', 6), ('NOP', None),
+                       ('NOP', None), ('Timestamp', (new_timestamp, 0)), ('SAckOK', b''), ('EOL', None)]
+        return tcp_options
+    else:
+        return []
+
+
+def generate_ack_tcp_options(new_timestamp, syn_ack_timestamp):
+    if OS_NAME == "Linux" or OS_NAME == "Darwin":
+        tcp_options = [('NOP', None), ('NOP', None),
+                       ('Timestamp', (new_timestamp, syn_ack_timestamp))]
+        return tcp_options
+    else:
+        return []
+
+
+def get_timestamp(tcp_options):
+    default_timestamp = 0
+    for attr in tcp_options:
+        if 'Timestamp' == str(attr[0]):
+            default_timestamp = attr[1][0]
+    return default_timestamp
+
+
+def get_new_timestamp():
+    timestamp_now = time.time()
+    return timestamp_now, (int(timestamp_now) ^ int(RandInt()))
+
+
 def send_packet_with_tcphandshake(this_request, timeout):
-    timeout += 2
+    timestamp_start, new_timestamp = get_new_timestamp()
     ip_address = this_request[IP].dst
-    source_port = ephemeral_port_reserve("tcp")
     destination_port = this_request[TCP].dport
-    send_syn = IP(
-        dst=ip_address, id=RandShort())/TCP(
-        sport=source_port, dport=destination_port, seq=RandInt(), flags="S")
-    ans, unans = sr(send_syn, verbose=0, timeout=timeout)
+    syn_tcp_options = generate_syn_tcp_options(new_timestamp)
+    ans = []
+    max_repeat = 0
+    # here we are trying to do a new TCP handshake every time because
+    # we are trying to trace packet data, not SYN packet. And
+    # we know about intermittent stream blocking
+    while len(ans) == 0 and max_repeat < 5:
+        source_port = ephemeral_port_reserve("tcp")
+        send_syn = IP(
+            dst=ip_address, id=RandShort())/TCP(
+            sport=source_port, dport=destination_port, seq=RandInt(), flags="S", options=syn_tcp_options)
+        tcp_handshake_timeout = timeout + max_repeat
+        ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
+        if len(ans) == 0:
+            print("Warning: No response to SYN packet yet")
+        max_repeat += 1
     if len(ans) == 0:
-        print("Error: No response to SYN packet")  # todo: xhdix
+        print("Error: doing TCP handshake failed "
+              + str(max_repeat)
+              + " times. You should test with PingVis instead")  # todo: xhdix
+        sleep(timeout + max_repeat)  # double sleep (￣o￣) . z Z.
         return ans, unans
     else:
+        timeout += 2  # we should wait more for data packets.
+        syn_ack_timestamp = get_timestamp(ans[0][1][TCP].options)
+        new_timestamp = new_timestamp + \
+            int((time.time() - timestamp_start) * 1000)
+        ack_tcp_options = generate_ack_tcp_options(
+            new_timestamp, syn_ack_timestamp)
         send_ack = IP(
             dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
             sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
-            ack=ans[0][1][TCP].seq + 1, flags="A")
+            ack=ans[0][1][TCP].seq + 1, flags="A", options=ack_tcp_options)
         send(send_ack, verbose=0)
         send_data = this_request
         del(send_data[IP].src)
-        send_data[IP].id = ans[0][0][IP].id + 1
+        send_data[IP].id = ans[0][0][IP].id + 2
         send_data[TCP].sport = source_port
         send_data[TCP].seq = ans[0][1][TCP].ack
         send_data[TCP].ack = ans[0][1][TCP].seq + 1
+        send_data[TCP].options = tcp_options_correction(
+            send_data[TCP].options, new_timestamp, syn_ack_timestamp)
         del(send_data[TCP].chksum)
         del(send_data[IP].len)
         del(send_data[IP].chksum)
         request_and_answers, unanswered = sr(
-            send_data, verbose=0, timeout=timeout)
+            send_data, verbose=0, timeout=timeout, multi=True)
         # send_fin = send_ack.copy() # todo: xhdix
         # send_fin[IP].id=ans[0][0][IP].id + 1
         # send_fin[TCP].flags = "FA"
@@ -129,6 +203,9 @@ def send_single_packet(this_request, timeout):
         this_request[TCP].sport = ephemeral_port_reserve("tcp")
         if this_request[TCP].flags == "S":
             this_request[TCP].seq = RandInt()
+        timestamp_start, new_timestamp = get_new_timestamp()
+        this_request[TCP].options = tcp_options_correction(
+            this_request[TCP].options, new_timestamp, int(timestamp_start))
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = ephemeral_port_reserve("udp")
@@ -178,7 +255,23 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     if len(request_and_answers) == 0:
         return parse_packet(None, current_ttl, elapsed_ms)
     else:
-        return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+        if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
+            # request_and_answers.show()
+            request_and_answers.summary()
+            if len(request_and_answers) > 1:
+                if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
+                    # todo xhdix: flag first hop as middlebox
+                    print("--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
+                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+                else:
+                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms)
+            # we need PA from server, not ACK from middlebox
+            elif request_and_answers[0][1][TCP].flags != "A":
+                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+            else:
+                return parse_packet(None, current_ttl, elapsed_ms)
+        else:
+            return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
 
 
 def already_reached_destination(previous_node_id, current_node_ip):
@@ -361,7 +454,8 @@ def trace_route(
     else:
         measurement_name = "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
     repeat_all_steps = 0
-    packet_1_proto, packet_2_proto, packet_1_port, packet_2_port = get_packets_info(request_packets)
+    packet_1_proto, packet_2_proto, packet_1_port, packet_2_port = get_packets_info(
+        request_packets)
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=packet_1_proto, packet_2_proto=packet_2_proto,
