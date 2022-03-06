@@ -122,7 +122,7 @@ def main(args):
     if args.get("rexmit"):
         trace_retransmission = True
     if args.get("options"):
-        trace_options= args["ips"].replace(' ', '').split(',')
+        trace_options= args["options"].replace(' ', '').split(',')
         if "new" in trace_options and "rexmit" in trace_options:
             trace_with_retransmission = True
         elif "rexmit" in trace_options:
