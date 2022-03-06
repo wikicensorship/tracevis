@@ -62,9 +62,13 @@ def get_args():
     parser.add_argument('--annot2', type=str,
                         help="annotation for the second packets (dns and packet trace)")
     parser.add_argument('--rexmit', action='store_true',
-                        help="change the behavior of the trace route to be similar to doing retransmission. (only one packet, and all steps, same stream)")
-    parser.add_argument('--rexmit2', action='store_true',
-                        help="change the behavior of the trace route to be similar to doing retransmission. (each step, different stream)")
+                        help="same as rexmit option (only one packet. all TTL steps, same stream)")
+    parser.add_argument('-o', '--options', type=str, default="new",
+                        help="change the behavior of the trace route" 
+                            + " - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)"
+                            + " - 'new' : to change source port, sequence number, etc in each request (default)"
+                            + " - 'new,rexmit' : to beging with option 'new' on each of three steps for all destinations and then rexmit"
+                        )
     args = parser.parse_args()
     return args
 
@@ -117,8 +121,14 @@ def main(args):
         edge_lable = args["label"].lower()
     if args.get("rexmit"):
         trace_retransmission = True
-    if args.get("rexmit2"):
-        trace_with_retransmission = True
+    if args.get("options"):
+        trace_options= args["ips"].replace(' ', '').split(',')
+        if "new" in trace_options and "rexmit" in trace_options:
+            trace_with_retransmission = True
+        elif "rexmit" in trace_options:
+            trace_retransmission = True
+        else:
+            pass # "new" is default
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix += "dns"
@@ -127,7 +137,7 @@ def main(args):
             dns_over_tcp=(args["dnstcp"]))
         if len(request_ips) == 0:
             request_ips = DEFAULT_REQUEST_IPS
-    if args.get("packet"):
+    if args.get("packet") or args.get("rexmit"):
         do_traceroute = True
         name_prefix += "packet"
         packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(
@@ -135,7 +145,7 @@ def main(args):
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
-        name_prefix += "-rexmit2"
+        name_prefix += "-newrexmit"
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
