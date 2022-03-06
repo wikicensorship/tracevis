@@ -439,7 +439,7 @@ def check_for_permission():
 
 def trace_route(
         ip_list, request_packet_1, output_dir: str,
-        max_ttl: int, timeout: int,
+        max_ttl: int, timeout: int, repeat_requests: int,
         request_packet_2: str = "", name_prefix: str = "",
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
@@ -505,7 +505,7 @@ def trace_route(
         packet_1_port=packet_1_port, packet_2_port=packet_2_port
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
-    while repeat_all_steps < 3:
+    while repeat_all_steps < repeat_requests:
         repeat_all_steps += 1
         request_packets_for_rexmit = []
         if trace_with_retransmission:

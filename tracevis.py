@@ -14,6 +14,7 @@ import utils.vis
 
 TIMEOUT = 1
 MAX_TTL = 50
+REPEAT_REQUESTS = 3
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
 DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
@@ -39,6 +40,8 @@ def get_args():
                         help="set max TTL (up to 255, default: 50)")
     parser.add_argument('-t', '--timeout', type=int,
                         help="set timeout in seconds for each request (default: 1 second)")
+    parser.add_argument('-r', '--repeat', type=int,
+                        help="set the number of repetitions of each request (default: 3 steps)")
     parser.add_argument('-R', '--ripe', type=str,
                         help="download the latest traceroute measuremets of a RIPE Atlas probe via ID and visualize")
     parser.add_argument('-I', '--ripemids', type=str,
@@ -69,6 +72,7 @@ def get_args():
                             + " - 'new' : to change source port, sequence number, etc in each request (default)"
                             + " - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"
                         )
+
     args = parser.parse_args()
     return args
 
@@ -78,6 +82,7 @@ def main(args):
     continue_to_max_ttl = False
     max_ttl = MAX_TTL
     timeout = TIMEOUT
+    repeat_requests = REPEAT_REQUESTS
     attach_jscss = False
     request_ips = []
     packet_1 = None
@@ -111,6 +116,8 @@ def main(args):
         max_ttl = args["maxttl"]
     if args.get("timeout"):
         timeout = args["timeout"]
+    if args.get("repeat"):
+        repeat_requests = args["repeat"]
     if args.get("attach"):
         attach_jscss = True
     if args.get("annot1"):
@@ -149,7 +156,7 @@ def main(args):
     if do_traceroute:
         was_successful, measurement_path = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
-            max_ttl=max_ttl, timeout=timeout,
+            max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
             request_packet_2=packet_2, name_prefix=name_prefix,
             annotation_1=annotation_1, annotation_2=annotation_2,
             continue_to_max_ttl=continue_to_max_ttl,
