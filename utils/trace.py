@@ -278,7 +278,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
                     return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
                 else:
                     return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
-            # we need PA from server, not ACK from middlebox
+            # we need hello from server, not ACK from middlebox
             elif request_and_answers[0][1][TCP].flags != "A":
                 return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
             # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
