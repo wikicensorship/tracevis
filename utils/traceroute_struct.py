@@ -57,11 +57,11 @@ class traceroute_data:
         for try_step in self.result:  # will be up to 255
             results = try_step["result"]
             repeat_steps = 0
-            for result in results:  # will be up to 3
+            for result in results:  # will be unknown
                 if "x" in result.keys():
                     if '-' == result["x"]:
                         repeat_steps += 1
-            if repeat_steps == 3:
+            if repeat_steps == len(results):
                 del self.result[result_index:]
                 break
             result_index += 1
