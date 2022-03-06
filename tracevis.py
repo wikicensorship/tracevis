@@ -67,7 +67,7 @@ def get_args():
                         help="change the behavior of the trace route" 
                             + " - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)"
                             + " - 'new' : to change source port, sequence number, etc in each request (default)"
-                            + " - 'new,rexmit' : to beging with option 'new' on each of three steps for all destinations and then rexmit"
+                            + " - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"
                         )
     args = parser.parse_args()
     return args
