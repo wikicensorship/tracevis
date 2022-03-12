@@ -22,6 +22,10 @@ def yesno_second_packet(question):
     return False
 
 
+def supported_or_correct(copied_packet):
+    return (copied_packet[IP].version == 4)
+
+
 def copy_input_packets(os_name: str, trace_retransmission: bool):
     copy_packet_1 = ""
     copy_packet_2 = ""
@@ -37,6 +41,12 @@ def copy_input_packets(os_name: str, trace_retransmission: bool):
     print(" . . . - . developed view of this packet:")
     copy_packet_1.show()
     print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+    # todo xhdix: we should have better solution
+    if not supported_or_correct(copy_packet_1):
+        print(" · · · · · · · · it's not IPv4 or the hexdump is not started with IP layer")
+        print(
+            " · · · · · · · · please check the packet and try again. ( •_•)>⌐■-■ exiting.. ")
+        print(" . . . - .     . . . - .     . . . - .     . . . - . ")
     if not trace_retransmission:
         if copy_packet_1.haslayer(TCP):
             if copy_packet_1[TCP].flags == "PA":
@@ -57,6 +67,12 @@ def copy_input_packets(os_name: str, trace_retransmission: bool):
             print(" . . . - . developed view of this packet:")
             copy_packet_2.show()
             print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+            if not supported_or_correct(copy_packet_1):
+                print(
+                    " · · · · · · · · it's not IPv4 or the hexdump is not started with IP layer")
+                print(
+                    " · · · · · · · · please check the packet and try again. ( •_•)>⌐■-■ exiting.. ")
+                print(" . . . - .     . . . - .     . . . - .     . . . - . ")
             if copy_packet_2.haslayer(TCP):
                 if copy_packet_2[TCP].flags == "PA":
                     do_tcph2 = yesno_second_packet(
