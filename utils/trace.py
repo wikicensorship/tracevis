@@ -204,9 +204,9 @@ def send_single_packet(this_request, timeout):
         this_request[TCP].sport = ephemeral_port_reserve("tcp")
         if this_request[TCP].flags == "S":
             this_request[TCP].seq = RandInt()
-        timestamp_start, new_timestamp = get_new_timestamp()
+        _, new_timestamp = get_new_timestamp()
         this_request[TCP].options = tcp_options_correction(
-            this_request[TCP].options, new_timestamp, int(timestamp_start))
+            this_request[TCP].options, new_timestamp, 0)
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = ephemeral_port_reserve("udp")
