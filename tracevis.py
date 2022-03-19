@@ -32,13 +32,12 @@ def get_args():
                         help="add comma-separated IPs (up to 6 for two packet and up to 12 for one packet)")
     parser.add_argument('-p', '--packet', action='store_true',
                         help="receive one or two packets from the IP layer via the terminal input and trace route with")
-    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['stdin','file','hex','interactive'], default="hex",
+    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['file','hex','interactive'], default="hex",
                         help=textwrap.dedent("""Select packet input method 
-stdin: read packet from stdin (pipe)
 file: read packet from a file (set via --packet-file)
 hex: paste hex dump of packet into interactive shell 
 interactive: use full featured scapy and python console to craft packet\n\n"""))
-    parser.add_argument("--packet-file", dest='packet_file', type=str, help="Packet file path if input method is 'file'")
+    parser.add_argument("--packet-file", dest='packet_file', type=str, help="Packet file path if input method is 'file'", default=None)
     parser.add_argument('--dns', action='store_true',
                         help="trace route with a simple DNS over UDP packet")
     parser.add_argument('--dnstcp', action='store_true',
@@ -83,6 +82,8 @@ interactive: use full featured scapy and python console to craft packet\n\n"""))
                         )
 
     args = parser.parse_args()
+    if args.packet_input_method == 'file' and args.packet_file is None:
+        parser.error("--packet-input-method requires --packet-file.")
     return args
 
 
@@ -156,8 +157,21 @@ def main(args):
     if args.get("packet") or args.get("rexmit"):
         do_traceroute = True
         name_prefix += "packet"
-        packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(
-            OS_NAME, trace_retransmission)
+        if args.get('packet_input_method') == 'file':
+            try:
+                packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.read_input_packets(
+                    OS_NAME, trace_retransmission, file=args.get('packet_file'))
+            except utils.packet_input.BADPacket:
+                exit(1)
+        elif args.get('packet_input_method') == 'interactive':
+            try:
+                packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.read_input_packets_scapy(
+                    OS_NAME, trace_retransmission)
+            except utils.packet_input.BADPacket:
+                exit(1)
+        elif args.get('packet_input_method') == 'hex':
+            packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(
+                OS_NAME, trace_retransmission)
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
