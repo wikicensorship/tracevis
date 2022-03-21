@@ -106,6 +106,8 @@ docker run ghcr.io/wikicensorship/tracevis
 
 #### Examples:
 
+![example graph](https://user-images.githubusercontent.com/12384263/159377323-1e4e594e-aca8-4f91-8174-0ba58f6a6454.png)
+
 ![example graph](https://user-images.githubusercontent.com/12384263/144353391-b7add54f-ef8b-48e0-988f-8c64b95dca76.png)
 
 ![example cli](https://user-images.githubusercontent.com/12384263/137825581-e2bd4bdb-874f-4fad-9a54-6c39beab0398.png)
