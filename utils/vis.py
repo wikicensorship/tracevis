@@ -3,8 +3,6 @@
 import ipaddress
 import json
 import os
-from time import sleep
-from turtle import shape
 
 import networkx as nx
 from pyvis.network import Network
@@ -55,7 +53,7 @@ def visualize(previous_node_id, current_node_id,
     if not multi_directed_graph.has_node(current_node_id):
         multi_directed_graph.add_node(current_node_id,
                                       label=current_node_label, color=device_color,
-                                      title=current_node_title,shape=current_node_shape)
+                                      title=current_node_title, shape=current_node_shape)
     multi_directed_graph.add_edge(previous_node_id, current_node_id, label=current_edge_label,
                                   color=requset_color, title=current_edge_title)
 
@@ -151,7 +149,7 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                     current_edge_title = "***"
                     current_edge_label = ""
                     current_node_id = "0"
-                    current_node_shape= "dot"
+                    current_node_shape = "dot"
                     elapsed_ms = "*"
                     packet_size = "*"
                     backttl = "*"
