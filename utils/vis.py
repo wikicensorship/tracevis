@@ -3,7 +3,6 @@
 import ipaddress
 import json
 import os
-from time import sleep
 
 import networkx as nx
 from pyvis.network import Network
@@ -49,11 +48,12 @@ def parse_ttl(response_ttl, current_ttl):
 
 def visualize(previous_node_id, current_node_id,
               current_node_label, current_node_title, device_color,
-              current_edge_title, requset_color, current_edge_label):
+              current_edge_title, requset_color, current_edge_label,
+              current_node_shape):
     if not multi_directed_graph.has_node(current_node_id):
         multi_directed_graph.add_node(current_node_id,
                                       label=current_node_label, color=device_color,
-                                      title=current_node_title)
+                                      title=current_node_title, shape=current_node_shape)
     multi_directed_graph.add_edge(previous_node_id, current_node_id, label=current_edge_label,
                                   color=requset_color, title=current_edge_title)
 
@@ -120,7 +120,8 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
     src_addr = all_measurements[0]["src_addr"]
     src_addr_id = str(int(ipaddress.IPv4Address(src_addr)))
     multi_directed_graph.add_node(
-        src_addr_id, label=src_addr, color="Chocolate", title="source address")
+        src_addr_id, label=src_addr, color="Chocolate", title="source address",
+        shape="diamond")
     for measurement in all_measurements:
         previous_node_ids = initialize_first_nodes(src_addr_id)
         dst_addr = measurement["dst_addr"]
@@ -148,6 +149,7 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                     current_edge_title = "***"
                     current_edge_label = ""
                     current_node_id = "0"
+                    current_node_shape = "dot"
                     elapsed_ms = "*"
                     packet_size = "*"
                     backttl = "*"
@@ -173,6 +175,9 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                         if device_color == MIDDLEBOX_COLOR:
                             current_node_id = (
                                 "middlebox" + str(current_node_id) + "x")
+                            current_node_shape = "star"
+                        elif current_node_id == dst_addr_id:
+                            current_node_shape = "square"
                         current_node_label = answer_ip
                         current_edge_title = str(backttl)
                         packet_size = result["size"]
@@ -186,7 +191,7 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                         previous_node_ids[repeat_steps], current_node_id,
                         current_node_label, DEVICE_OS_NAME[device_color], device_color,
                         current_edge_title, REQUEST_COLORS[measurement_steps],
-                        current_edge_label
+                        current_edge_label, current_node_shape
                     )
                     previous_node_ids[repeat_steps] = current_node_id
                 repeat_steps += 1

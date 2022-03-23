@@ -6,6 +6,9 @@ Traceroute with any packet. Visualize the routes. Discover Middleboxes and Firew
 
 TraceVis is a research project whose main goal is to find middleboxes. Where a packet is tampered with or blocked. This tool also has other features such as downloading and visualizing traceroute data from RIPE Atlas probes.
 
+
+![example graph](https://user-images.githubusercontent.com/12384263/159377323-1e4e594e-aca8-4f91-8174-0ba58f6a6454.png)
+
 ## Install and build
 
 ##### Pull docker image from github container registry:
