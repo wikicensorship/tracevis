@@ -324,7 +324,7 @@ def initialize_first_nodes(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
-        packet_1_port, packet_2_port):
+        packet_1_port, packet_2_port, packet_1_size, packet_2_size):
     # source_address = get_if_addr(conf.iface) #todo: xhdix
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
@@ -333,7 +333,7 @@ def initialize_json_first_nodes(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
-                timestamp=start_time
+                timestamp=start_time, size=packet_1_size
             )
         )
         if have_2_packet:
@@ -341,7 +341,7 @@ def initialize_json_first_nodes(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
-                    timestamp=start_time
+                    timestamp=start_time, size=packet_2_size
                 )
             )
 
@@ -351,8 +351,11 @@ def get_packets_info(request_packets):
     packet_2_proto = ""
     packet_1_port = -1
     packet_2_port = -1
+    packet_1_size = -1
+    packet_2_size = -1
     if (request_packets[0]).haslayer(IP):
         packet_1_proto = "IP"
+        packet_1_size = len(request_packets[0])
     if (request_packets[0]).haslayer(TCP):
         packet_1_proto = "TCP"
         packet_1_port = request_packets[0][TCP].dport
@@ -364,6 +367,7 @@ def get_packets_info(request_packets):
     if have_2_packet:
         if (request_packets[1]).haslayer(IP):
             packet_2_proto = "IP"
+            packet_2_size = len(request_packets[1])
         if (request_packets[1]).haslayer(TCP):
             packet_2_proto = "TCP"
             packet_2_port = request_packets[1][TCP].dport
@@ -372,7 +376,7 @@ def get_packets_info(request_packets):
             packet_2_port = request_packets[1][UDP].dport
         elif(request_packets[1]).haslayer(ICMP):
             packet_2_proto = "ICMP"
-    return packet_1_proto, packet_2_proto, packet_1_port, packet_2_port
+    return packet_1_proto, packet_2_proto, packet_1_port, packet_2_port, packet_1_size, packet_2_size
 
 
 def save_measurement_data(
@@ -497,12 +501,13 @@ def trace_route(
     else:
         measurement_name = "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
     repeat_all_steps = 0
-    packet_1_proto, packet_2_proto, packet_1_port, packet_2_port = get_packets_info(
+    p1_proto, p2_proto, p1_port, p2_port, p1_size, p2_size = get_packets_info(
         request_packets)
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
-        packet_1_proto=packet_1_proto, packet_2_proto=packet_2_proto,
-        packet_1_port=packet_1_port, packet_2_port=packet_2_port
+        packet_1_proto=p1_proto, packet_2_proto=p2_proto,
+        packet_1_port=p1_port, packet_2_port=p2_port,
+        packet_1_size=p1_size, packet_2_size=p2_size
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
