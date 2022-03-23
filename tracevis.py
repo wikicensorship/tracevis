@@ -34,9 +34,9 @@ def get_args():
                         help="receive one or two packets from the IP layer via the terminal input and trace route with")
     parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['file','hex','interactive'], default="hex",
                         help=textwrap.dedent("""Select packet input method 
-file: read packet from a file (set via --packet-file)
-hex: paste hex dump of packet into interactive shell 
-interactive: use full featured scapy and python console to craft packet\n\n"""))
+- file: read packet from a file (set via --packet-file)
+- hex: paste hex dump of packet into interactive shell 
+- interactive: use full featured scapy and python console to craft packet\n\n"""))
     parser.add_argument("--packet-file", dest='packet_file', type=str, help="Packet file path if input method is 'file'", default=None)
     parser.add_argument('--dns', action='store_true',
                         help="trace route with a simple DNS over UDP packet")
@@ -75,10 +75,10 @@ interactive: use full featured scapy and python console to craft packet\n\n"""))
     parser.add_argument('--rexmit', action='store_true',
                         help="same as rexmit option (only one packet. all TTL steps, same stream)")
     parser.add_argument('-o', '--options', type=str, default="new",
-                        help="change the behavior of the trace route" 
-                            + " - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)"
-                            + " - 'new' : to change source port, sequence number, etc in each request (default)"
-                            + " - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"
+                        help="""change the behavior of the trace route 
+- 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)
+- 'new' : to change source port, sequence number, etc in each request (default)
+- 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
 
     args = parser.parse_args()
@@ -157,35 +157,51 @@ def main(args):
     if args.get("packet") or args.get("rexmit"):
         do_traceroute = True
         name_prefix += "packet"
-        if args.get('packet_input_method') == 'file':
-            try:
-                packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.read_input_packets(
-                    OS_NAME, trace_retransmission, file=args.get('packet_file'))
-            except utils.packet_input.BADPacket:
-                exit(1)
-        elif args.get('packet_input_method') == 'interactive':
-            try:
-                packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.read_input_packets_scapy(
-                    OS_NAME, trace_retransmission)
-            except utils.packet_input.BADPacket:
-                exit(1)
-        elif args.get('packet_input_method') == 'hex':
-            packet_1, packet_2, do_tcph1, do_tcph2 = utils.packet_input.copy_input_packets(
-                OS_NAME, trace_retransmission)
+        try:
+            
+            if args.get('packet_input_method') == 'file':
+                input_packet = utils.packet_input.InputPacketInfo.from_config_file(OS_NAME, trace_retransmission, file=args.get('packet_file'))
+            elif args.get('packet_input_method') == 'interactive':
+                input_packet = utils.packet_input.InputPacketInfo.from_scapy(OS_NAME, trace_retransmission)
+            elif args.get('packet_input_method') == 'hex':
+                input_packet = utils.packet_input.InputPacketInfo.from_stdin(OS_NAME, trace_retransmission)
+            else:
+                raise RuntimeError("Bad input type")
+        except (utils.packet_input.BADPacketException, utils.packet_input.FirewallException) as e:
+            print(f"{e!s}")
+            exit(1)
+        except Exception as e:
+            print(f"Error!\n{e!s}")
+            exit(2)
+
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
         name_prefix += "-newrexmit"
     if do_traceroute:
-        was_successful, measurement_path = utils.trace.trace_route(
-            ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
-            max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
-            request_packet_2=packet_2, name_prefix=name_prefix,
-            annotation_1=annotation_1, annotation_2=annotation_2,
-            continue_to_max_ttl=continue_to_max_ttl,
-            do_tcph1=do_tcph1, do_tcph2=do_tcph2,
-            trace_retransmission=trace_retransmission,
-            trace_with_retransmission=trace_with_retransmission)
+        if args.get("packet") or args.get("rexmit"):
+            with input_packet as ctx:
+                print(ctx)
+                packet_1, packet_2, do_tcph1, do_tcph2 = ctx
+                was_successful, measurement_path = utils.trace.trace_route(
+                    ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
+                    max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
+                    request_packet_2=packet_2, name_prefix=name_prefix,
+                    annotation_1=annotation_1, annotation_2=annotation_2,
+                    continue_to_max_ttl=continue_to_max_ttl,
+                    do_tcph1=do_tcph1, do_tcph2=do_tcph2,
+                    trace_retransmission=trace_retransmission,
+                    trace_with_retransmission=trace_with_retransmission)
+        else:
+            was_successful, measurement_path = utils.trace.trace_route(
+                ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
+                max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
+                request_packet_2=packet_2, name_prefix=name_prefix,
+                annotation_1=annotation_1, annotation_2=annotation_2,
+                continue_to_max_ttl=continue_to_max_ttl,
+                do_tcph1=do_tcph1, do_tcph2=do_tcph2,
+                trace_retransmission=trace_retransmission,
+                trace_with_retransmission=trace_with_retransmission)
     if args.get("ripe"):
         measurement_ids = ""
         if args.get("ripemids"):
