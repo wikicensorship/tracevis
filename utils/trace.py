@@ -26,8 +26,57 @@ measurement_data = [[], []]
 OS_NAME = platform.system()
 
 
-def parse_packet(request_and_answer, current_ttl, elapsed_ms, summary_postfix=""):
-    if request_and_answer is not None:
+def choose_desirable_packet(request_and_answers, do_tcphandshake):
+    # request_and_answers.summary()
+    summary_postfix = str(request_and_answers.summary)
+    print("    " + summary_postfix)
+    if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
+        desirable_packet = None
+        if len(request_and_answers) > 1:
+            if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
+                # todo xhdix: flag the first hop as a middlebox
+                print(
+                    "--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
+                desirable_packet = request_and_answers[1]
+            # todo xhdix: flag as middlebox if [0][1][TCP].flags in ["R", "RA", "F", "FA"] and [1][1].haslayer(ICMP
+            elif request_and_answers[0][1][TCP].flags in ["R", "RA", "F", "FA"]:
+                desirable_packet = request_and_answers[0]
+            else:
+                desirable_packet = request_and_answers[1]
+        # we need hello from server, not ACK from middlebox
+        elif request_and_answers[0][1][TCP].flags != "A":
+            desirable_packet = request_and_answers[0]
+        # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
+        elif request_and_answers[0][1][TCP].flags == "A" and request_and_answers[0][1].haslayer(Raw):
+            desirable_packet = request_and_answers[0]
+        else:
+            desirable_packet = request_and_answers[0]
+        return desirable_packet, summary_postfix
+    elif do_tcphandshake:
+        desirable_packet = request_and_answers[0]
+        return desirable_packet, summary_postfix
+    else:
+        desirable_packet = request_and_answers[0]
+        return desirable_packet, ""
+
+
+def guess_back_ttl(current_ttl, ttl):
+    backttl = 0
+    if ttl <= 20:
+        backttl = int((current_ttl - ttl) / 2) + 1
+    elif ttl <= 64:
+        backttl = 64 - ttl + 1
+    elif ttl <= 128:
+        backttl = 128 - ttl + 1
+    else:
+        backttl = 255 - ttl + 1
+    return backttl
+
+
+def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake):
+    if answered is not None and len(answered) != 0:
+        request_and_answer, summary_postfix = choose_desirable_packet(
+            answered, do_tcphandshake)
         req_answer = request_and_answer[1]
         packet_send_time = request_and_answer[0].sent_time
         packet_receive_time = req_answer.time
@@ -35,15 +84,7 @@ def parse_packet(request_and_answer, current_ttl, elapsed_ms, summary_postfix=""
             format(abs((packet_receive_time - packet_send_time) * 1000), '.3f'))
         if packet_elapsed_ms > 0:
             elapsed_ms = packet_elapsed_ms
-        backttl = 0
-        if req_answer[IP].ttl <= 20:
-            backttl = int((current_ttl - req_answer[IP].ttl) / 2) + 1
-        elif req_answer[IP].ttl <= 64:
-            backttl = 64 - req_answer[IP].ttl + 1
-        elif req_answer[IP].ttl <= 128:
-            backttl = 128 - req_answer[IP].ttl + 1
-        else:
-            backttl = 255 - req_answer[IP].ttl + 1
+        backttl = guess_back_ttl(current_ttl, req_answer[IP].ttl)
         print("   <<< answer:"
               + "   ip.src: " + req_answer[IP].src
               + "   ip.ttl: " + str(req_answer[IP].ttl)
@@ -51,13 +92,14 @@ def parse_packet(request_and_answer, current_ttl, elapsed_ms, summary_postfix=""
         answer_summary = req_answer.summary()
         print("      " + answer_summary)
         print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
-        answer_summary += " . - - . - . " + summary_postfix
-        return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
+        if len(summary_postfix) != 0:
+            answer_summary += " . - - . - . " + summary_postfix
+        return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary, answered, unanswered
     else:
         print("              *** no response *** ")
         print("· - · · · rtt: " + str(elapsed_ms) +
               "ms · · · · · · · · timeout ")
-        return "***", elapsed_ms, 0, 0, "*"
+        return "***", elapsed_ms, 0, 0, "*", answered, unanswered
 
 
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
@@ -260,34 +302,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
         return request_and_answers, unanswered
     if do_tcphandshake:
         sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
-    if len(request_and_answers) == 0:
-        return parse_packet(None, current_ttl, elapsed_ms)
-    else:
-        if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
-            # request_and_answers.summary()
-            summary_postfix = str(request_and_answers.summary)
-            print("    " + summary_postfix)
-            if len(request_and_answers) > 1:
-                if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
-                    # todo xhdix: flag the first hop as a middlebox
-                    print(
-                        "--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
-                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
-                # todo xhdix: flag as middlebox if [0][1][TCP].flags in ["R", "RA", "F", "FA"] and [1][1].haslayer(ICMP
-                elif request_and_answers[0][1][TCP].flags in ["R", "RA", "F", "FA"]:
-                    return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
-                else:
-                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
-            # we need hello from server, not ACK from middlebox
-            elif request_and_answers[0][1][TCP].flags != "A":
-                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
-            # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
-            elif request_and_answers[0][1][TCP].flags == "A" and request_and_answers[0][1].haslayer(Raw):
-                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
-            else:
-                return parse_packet(None, current_ttl, elapsed_ms, summary_postfix)
-        else:
-            return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+    return parse_packet(request_and_answers, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
 
 
 def already_reached_destination(previous_node_id, current_node_ip):
@@ -525,7 +540,7 @@ def trace_route(
                 while ip_steps < len(request_ips):
                     # to avoid confusing the order of results when we have already reached our destination
                     measurement_data[access_block_steps][ip_steps].add_hop(
-                        current_ttl, "", 0, 0, 0, ""
+                        current_ttl, "", 0, 0, 0, "", None, None
                     )
                     ip_steps += 1
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
@@ -550,26 +565,26 @@ def trace_route(
                         current_packet = request_packets[access_block_steps]
                     if not continue_to_max_ttl:
                         if not_yet_destination:
-                            answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
+                            answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered = send_packet(
                                 current_packet, request_ips[ip_steps],
                                 current_ttl, timeout, do_tcphandshake[access_block_steps],
                                 trace_retransmission, False)
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
+                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered
                             )
                         else:
                             sleep_time = 0
                             # to avoid confusing the order of results when we have already reached our destination
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, "", 0, 0, 0, ""
+                                current_ttl, "", 0, 0, 0, "", None, None
                             )
                     else:
-                        answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
+                        answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered = send_packet(
                             current_packet, request_ips[ip_steps],
                             current_ttl, timeout, do_tcphandshake[access_block_steps],
                             trace_retransmission, False)
                         measurement_data[access_block_steps][ip_steps].add_hop(
-                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
+                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered
                         )
                     if not_yet_destination:
                         if answer_ip == "***":

@@ -29,7 +29,7 @@ class traceroute_data:
         self.timestamp = timestamp
         self.ttr = ttr
 
-    def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary):
+    def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary, answered, unanswered):
         if len(self.result) < hop:
             (self.result).append({"hop": hop, "result": []})
         if rtt == 0:
@@ -37,20 +37,48 @@ class traceroute_data:
                 "x": "-",
             })
         elif from_ip == "***":
+            packetlist = self.packetlist2json(answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "x": "*",
+                "packets": packetlist,
             })
         else:
+            packetlist = self.packetlist2json(answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "from": from_ip,
                 "rtt": rtt,
                 "size": size,
                 "ttl": ttl,
-                "summary": answer_summary
+                "summary": answer_summary,
+                "packets": packetlist,
             })
 
     def set_endtime(self, endtime):
         self.endtime = endtime
+
+    def packet2json(self, packet):
+        packet_dict = {}
+        for line in packet.show2(dump=True).split('\n'):
+            if '###' in line:
+                layer = line.strip('#[] ')
+                packet_dict[layer] = {}
+            elif '=' in line:
+                key, val = line.split('=', 1)
+                packet_dict[layer][key.strip()] = val.strip()
+        return packet_dict
+
+    def packetlist2json(self, answered, unanswered):
+        packetlist = {'sent': [], 'received': []}
+        if len(answered) == 0:
+            if len(unanswered) != 0:
+                packetlist["sent"] = self.packet2json(packet=unanswered[0])
+        else:
+            for sentp, receivedp in answered:
+                if len(packetlist["sent"]) == 0:
+                    packetlist["sent"] = self.packet2json(packet=sentp)
+                packetlist["received"].append(
+                    self.packet2json(packet=receivedp))
+        return packetlist
 
     def clean_extra_result(self):
         result_index = 0
