@@ -50,10 +50,7 @@ def choose_desirable_packet(request_and_answers, do_tcphandshake):
         elif request_and_answers[0][1][TCP].flags == "A" and request_and_answers[0][1].haslayer(Raw):
             desirable_packet = request_and_answers[0]
         else:
-            desirable_packet = request_and_answers[0]
-        return desirable_packet, summary_postfix
-    elif do_tcphandshake:
-        desirable_packet = request_and_answers[0]
+            return None, ""
         return desirable_packet, summary_postfix
     else:
         desirable_packet = request_and_answers[0]

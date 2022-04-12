@@ -56,6 +56,7 @@ class traceroute_data:
     def set_endtime(self, endtime):
         self.endtime = endtime
 
+    # this function source: https://stackoverflow.com/a/64410921
     def packet2json(self, packet):
         packet_dict = {}
         for line in packet.show2(dump=True).split('\n'):
