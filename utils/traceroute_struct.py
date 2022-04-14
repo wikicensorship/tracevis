@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import utils.convert_packetlist
 
 
 class traceroute_data:
@@ -37,13 +38,13 @@ class traceroute_data:
                 "x": "-",
             })
         elif from_ip == "***":
-            packetlist = self.packetlist2json(answered, unanswered)
+            packetlist = utils.convert_packetlist.packetlist2json(answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "x": "*",
                 "packets": packetlist,
             })
         else:
-            packetlist = self.packetlist2json(answered, unanswered)
+            packetlist = utils.convert_packetlist.packetlist2json(answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "from": from_ip,
                 "rtt": rtt,
@@ -55,31 +56,6 @@ class traceroute_data:
 
     def set_endtime(self, endtime):
         self.endtime = endtime
-
-    # this function source: https://stackoverflow.com/a/64410921
-    def packet2json(self, packet):
-        packet_dict = {}
-        for line in packet.show2(dump=True).split('\n'):
-            if '###' in line:
-                layer = line.strip('#[] ')
-                packet_dict[layer] = {}
-            elif '=' in line:
-                key, val = line.split('=', 1)
-                packet_dict[layer][key.strip()] = val.strip()
-        return packet_dict
-
-    def packetlist2json(self, answered, unanswered):
-        packetlist = {'sent': [], 'received': []}
-        if len(answered) == 0:
-            if len(unanswered) != 0:
-                packetlist["sent"] = self.packet2json(packet=unanswered[0])
-        else:
-            for sentp, receivedp in answered:
-                if len(packetlist["sent"]) == 0:
-                    packetlist["sent"] = self.packet2json(packet=sentp)
-                packetlist["received"].append(
-                    self.packet2json(packet=receivedp))
-        return packetlist
 
     def clean_extra_result(self):
         result_index = 0
