@@ -165,7 +165,7 @@ class InputPacketInfo:
         return packet
         
     @classmethod
-    def from_config_file(cls, os_name: str, trace_retransmission: bool, file: str):
+    def from_json(cls, os_name: str, trace_retransmission: bool, packet_data: json):
         copy_packet_1 :'scapy.layers.inet.Packet' = None
         copy_packet_2 :'scapy.layers.inet.Packet' = None
         do_tcph1 :bool = False
@@ -173,8 +173,7 @@ class InputPacketInfo:
         add_firewall_rule = False
 
         try:
-            with open(file) as f:
-                json_config = json.load(f) 
+            json_config = packet_data
             copy_packet_1 = cls._read_json_packet(json_config, 'packet1', show=True)
             if not trace_retransmission:
                 if copy_packet_1.haslayer(TCP):
