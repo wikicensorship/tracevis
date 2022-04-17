@@ -40,7 +40,7 @@ def get_packet_type(packet_obj):
         return list(packet_obj.keys())[1]
 
 
-def detect_nat_middlebox(sent, received):
+def detect_nat_pep_middlebox(sent, received):
     is_nat = False
     is_middlebox = False
     is_pep = False
@@ -70,20 +70,25 @@ def detect_nat_middlebox(sent, received):
                         is_nat = True
             elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"]:
                 packet_type = get_packet_type(received[0])
+                tcpflag = received[0]['TCP']['flags']
                 if received[0]['IP']['id'] == sent['IP']['id']:
                     is_middlebox = True
             else:
                 packet_type = get_packet_type(received[1])
+                if packet_type == 'TCP':
+                    tcpflag = received[1]['TCP']['flags']
                 if received[1]['IP']['id'] == sent['IP']['id']:
                     is_middlebox = True
         # we need hello from server, not ACK from middlebox
         elif received[0]['TCP']['flags'] != "A":
             packet_type = get_packet_type(received[0])
+            tcpflag = received[0]['TCP']['flags']
             if received[0]['IP']['id'] == sent['IP']['id']:
                 is_middlebox = True
         # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
         elif received[0]['TCP']['flags'] == "A" and received[0].haslayer('Raw'):
             packet_type = get_packet_type(received[0])
+            tcpflag = received[0]['TCP']['flags']
             if received[0]['IP']['id'] == sent['IP']['id']:
                 is_middlebox = True
         else:
@@ -272,27 +277,36 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                         if "packets" in result.keys():
                             if "received" in result['packets'].keys():
                                 if len(result['packets']['received']) != 0:
-                                    is_nat, is_middlebox, is_pep, packet_type, tcpflag = detect_nat_middlebox(
+                                    is_nat, is_middlebox, is_pep, packet_type, tcpflag = detect_nat_pep_middlebox(
                                         result['packets']['sent'], result['packets']['received']
                                     )
                                     if (is_middlebox_ttl or is_middlebox
                                         ) and not already_detected[repeat_steps]["is_middlebox"]:
-                                        already_detected[repeat_steps]["is_middlebox"] = True
+                                        pass # we decide about it later
                                     elif is_pep and not already_detected[repeat_steps]["is_pep"]:
                                         device_color = PEP_COLOR
+                                        device_name = PEP_NAME
                                         current_node_shape = "star"
                                         already_detected[repeat_steps]["is_pep"] = True
                                         current_node_id = "pep" + current_node_id + "x"
                                     elif is_nat and not already_detected[repeat_steps]["is_nat"]:
                                         device_color = NAT_COLOR
+                                        device_name = NAT_NAME
                                         already_detected[repeat_steps]["is_nat"] = True
                                         current_node_id = "nat" + current_node_id + "x"
                                     append_lines = tooltips_append_lines(
                                         is_nat, is_middlebox, is_pep, packet_type, tcpflag)
+                                    if (is_middlebox_ttl or is_middlebox):
+                                        already_detected[repeat_steps]["is_middlebox"] = True
+                                    if is_pep:
+                                        already_detected[repeat_steps]["is_pep"] = True
+                                    if is_nat:
+                                        already_detected[repeat_steps]["is_nat"] = True
                         if is_middlebox_ttl or is_middlebox:
                             current_node_id = "middlebox" + current_node_id + "x"
                             current_node_shape = "star"
                             device_color = MIDDLEBOX_COLOR
+                            device_name = MIDDLEBOX_NAME
                             already_detected[repeat_steps]["is_middlebox"] = True
                         elif current_node_id == dst_addr_id:
                             current_node_shape = "square"
