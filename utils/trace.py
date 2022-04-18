@@ -86,9 +86,9 @@ def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
                 elapsed_ms = packet_elapsed_ms
             backttl = guess_back_ttl(current_ttl, req_answer[IP].ttl)
             print("   <<< answer:"
-                + "   ip.src: " + req_answer[IP].src
-                + "   ip.ttl: " + str(req_answer[IP].ttl)
-                + "   back-ttl: " + str(backttl))
+                  + "   ip.src: " + req_answer[IP].src
+                  + "   ip.ttl: " + str(req_answer[IP].ttl)
+                  + "   back-ttl: " + str(backttl))
             answer_summary = req_answer.summary()
             print("      " + answer_summary)
             print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
@@ -98,7 +98,7 @@ def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
     # else for both:
     print("              *** no response *** ")
     print("· - · · · rtt: " + str(elapsed_ms) +
-            "ms · · · · · · · · timeout ")
+          "ms · · · · · · · · timeout ")
     return "***", elapsed_ms, 0, 0, "*", answered, unanswered
 
 

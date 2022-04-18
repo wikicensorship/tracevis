@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+
 import utils.convert_packetlist
 
 
@@ -38,13 +39,15 @@ class traceroute_data:
                 "x": "-",
             })
         elif from_ip == "***":
-            packetlist = utils.convert_packetlist.packetlist2json(answered, unanswered)
+            packetlist = utils.convert_packetlist.packetlist2json(
+                answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "x": "*",
                 "packets": packetlist,
             })
         else:
-            packetlist = utils.convert_packetlist.packetlist2json(answered, unanswered)
+            packetlist = utils.convert_packetlist.packetlist2json(
+                answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "from": from_ip,
                 "rtt": rtt,

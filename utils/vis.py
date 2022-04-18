@@ -281,8 +281,8 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                                         result['packets']['sent'], result['packets']['received']
                                     )
                                     if (is_middlebox_ttl or is_middlebox
-                                        ) and not already_detected[repeat_steps]["is_middlebox"]:
-                                        pass # we decide about it later
+                                            ) and not already_detected[repeat_steps]["is_middlebox"]:
+                                        pass  # we decide about it later
                                     elif is_pep and not already_detected[repeat_steps]["is_pep"]:
                                         device_color = PEP_COLOR
                                         device_name = PEP_NAME
@@ -314,7 +314,8 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                         packet_size = result["size"]
                     repeat_step_str = str(repeat_steps + 1)
                     current_edge_title = styled_tooltips(
-                        current_request_color=(REQUEST_COLORS[measurement_steps]),
+                        current_request_color=(
+                            REQUEST_COLORS[measurement_steps]),
                         current_ttl_str=current_ttl_str, backttl=str(backttl),
                         request_ip=dst_addr, elapsed_ms=elapsed_ms,
                         packet_size=packet_size, repeat_step=repeat_step_str,

@@ -14,10 +14,12 @@ def packet2json(packet_obj):
         elif '=' in line:
             key, val = line.split('=', 1)
             if layer == 'Raw' and key.strip() == 'load':
-                packet_dict[layer][key.strip()] = b64encode(packet_obj['Raw'].load).decode()
+                packet_dict[layer][key.strip()] = b64encode(
+                    packet_obj['Raw'].load).decode()
             else:
                 packet_dict[layer][key.strip()] = val.strip()
     return packet_dict
+
 
 def packetlist2json(answered, unanswered):
     packetlist = {'sent': [], 'received': []}
