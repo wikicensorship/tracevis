@@ -339,7 +339,7 @@ def initialize_first_nodes_json(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
-        packet_1_port, packet_2_port, packet_1_size, packet_2_size):
+        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id):
     # source_address = get_if_addr(conf.iface) #todo: xhdix
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
@@ -348,7 +348,7 @@ def initialize_json_first_nodes(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
-                timestamp=start_time, size=packet_1_size
+                timestamp=start_time, paris_id=paris_id, size=packet_1_size
             )
         )
         if have_2_packet:
@@ -356,7 +356,7 @@ def initialize_json_first_nodes(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
-                    timestamp=start_time, size=packet_2_size
+                    timestamp=start_time, paris_id=paris_id, size=packet_2_size
                 )
             )
 
@@ -519,11 +519,16 @@ def trace_route(
     repeat_all_steps = 0
     p1_proto, p2_proto, p1_port, p2_port, p1_size, p2_size = get_packets_info(
         request_packets)
+    paris_id = 0
+    if trace_with_retransmission:
+        paris_id = repeat_requests
+    elif trace_retransmission:
+        paris_id = -1
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,
         packet_1_port=p1_port, packet_2_port=p2_port,
-        packet_1_size=p1_size, packet_2_size=p2_size
+        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
