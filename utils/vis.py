@@ -258,6 +258,7 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                     device_color = NO_RESPONSE_COLOR
                     device_name = NO_RESPONSE_NAME
                     append_lines = ""
+                    is_middlebox = False
                     if 'x' in result.keys():
                         current_node_id = (
                             "unknown" + previous_node_ids[repeat_steps] + "x")
