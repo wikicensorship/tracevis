@@ -612,8 +612,6 @@ def trace_route(
                     " ********************************************************************** ")
                 print(
                     " ********************************************************************** ")
-                data_path = save_measurement_data(
-                    request_ips, measurement_name, continue_to_max_ttl, output_dir)
     if was_successful:
         print("saving measurement data...")
         data_path = save_measurement_data(
