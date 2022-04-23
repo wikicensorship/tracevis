@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
 
+import utils.convert_packetlist
+
 
 class traceroute_data:
     def __init__(
@@ -29,7 +31,7 @@ class traceroute_data:
         self.timestamp = timestamp
         self.ttr = ttr
 
-    def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary):
+    def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary, answered, unanswered):
         if len(self.result) < hop:
             (self.result).append({"hop": hop, "result": []})
         if rtt == 0:
@@ -37,16 +39,22 @@ class traceroute_data:
                 "x": "-",
             })
         elif from_ip == "***":
+            packetlist = utils.convert_packetlist.packetlist2json(
+                answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "x": "*",
+                "packets": packetlist,
             })
         else:
+            packetlist = utils.convert_packetlist.packetlist2json(
+                answered, unanswered)
             self.result[hop - 1]["result"].append({
                 "from": from_ip,
                 "rtt": rtt,
                 "size": size,
                 "ttl": ttl,
-                "summary": answer_summary
+                "summary": answer_summary,
+                "packets": packetlist,
             })
 
     def set_endtime(self, endtime):

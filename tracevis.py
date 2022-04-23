@@ -66,6 +66,9 @@ def get_args():
                         help="annotation for the second packets (dns and packet trace)")
     parser.add_argument('--rexmit', action='store_true',
                         help="same as rexmit option (only one packet. all TTL steps, same stream)")
+    parser.add_argument('--paris', action='store_true',
+                        help="same as 'new,rexmit' option (like Paris-Traceroute)")
+    # this argument ('-o', '--options') will be changed or removed before v1.0.0
     parser.add_argument('-o', '--options', type=str, default="new",
                         help="change the behavior of the trace route" 
                             + " - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)"
@@ -128,14 +131,17 @@ def main(args):
         edge_lable = args["label"].lower()
     if args.get("rexmit"):
         trace_retransmission = True
+    if args.get("paris"):
+        trace_with_retransmission = True
     if args.get("options"):
-        trace_options= args["options"].replace(' ', '').split(',')
+        # this argument will be changed or removed before v1.0.0
+        trace_options = args["options"].replace(' ', '').split(',')
         if "new" in trace_options and "rexmit" in trace_options:
             trace_with_retransmission = True
         elif "rexmit" in trace_options:
             trace_retransmission = True
         else:
-            pass # "new" is default
+            pass  # "new" is default
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix += "dns"

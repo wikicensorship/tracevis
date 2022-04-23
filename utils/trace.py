@@ -7,6 +7,7 @@ import platform
 import socket
 import sys
 import time
+from copy import deepcopy
 from datetime import datetime
 from time import sleep
 
@@ -26,38 +27,79 @@ measurement_data = [[], []]
 OS_NAME = platform.system()
 
 
-def parse_packet(request_and_answer, current_ttl, elapsed_ms, summary_postfix=""):
-    if request_and_answer is not None:
-        req_answer = request_and_answer[1]
-        packet_send_time = request_and_answer[0].sent_time
-        packet_receive_time = req_answer.time
-        packet_elapsed_ms = float(
-            format(abs((packet_receive_time - packet_send_time) * 1000), '.3f'))
-        if packet_elapsed_ms > 0:
-            elapsed_ms = packet_elapsed_ms
-        backttl = 0
-        if req_answer[IP].ttl <= 20:
-            backttl = int((current_ttl - req_answer[IP].ttl) / 2) + 1
-        elif req_answer[IP].ttl <= 64:
-            backttl = 64 - req_answer[IP].ttl + 1
-        elif req_answer[IP].ttl <= 128:
-            backttl = 128 - req_answer[IP].ttl + 1
+def choose_desirable_packet(request_and_answers, do_tcphandshake):
+    # request_and_answers.summary()
+    summary_postfix = str(request_and_answers.summary)
+    print("    " + summary_postfix)
+    if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
+        desirable_packet = None
+        # [0][0] = sent packet 1 -- [0][1] == received packet 1
+        # [1][0] = sent packet 1 -- [1][1] == received packet 2
+        # [2][0] = sent packet 1 -- [2][1] == received packet 3
+        if len(request_and_answers) > 1:
+            if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
+                # todo xhdix: flag the first hop as a middlebox
+                desirable_packet = request_and_answers[1]
+            # todo xhdix: flag as middlebox if [0][1][TCP].flags in ["R", "RA", "F", "FA"] and [1][1].haslayer(ICMP
+            elif request_and_answers[0][1][TCP].flags in ["R", "RA", "F", "FA"]:
+                desirable_packet = request_and_answers[0]
+            else:
+                desirable_packet = request_and_answers[1]
+        # we need hello from server, not ACK from middlebox
+        elif request_and_answers[0][1][TCP].flags != "A":
+            desirable_packet = request_and_answers[0]
+        # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
+        elif request_and_answers[0][1][TCP].flags == "A" and request_and_answers[0][1].haslayer(Raw):
+            desirable_packet = request_and_answers[0]
         else:
-            backttl = 255 - req_answer[IP].ttl + 1
-        print("   <<< answer:"
-              + "   ip.src: " + req_answer[IP].src
-              + "   ip.ttl: " + str(req_answer[IP].ttl)
-              + "   back-ttl: " + str(backttl))
-        answer_summary = req_answer.summary()
-        print("      " + answer_summary)
-        print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
-        answer_summary += " . - - . - . " + summary_postfix
-        return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary
+            return None, ""
+        return desirable_packet, summary_postfix
     else:
-        print("              *** no response *** ")
-        print("· - · · · rtt: " + str(elapsed_ms) +
-              "ms · · · · · · · · timeout ")
-        return "***", elapsed_ms, 0, 0, "*"
+        desirable_packet = request_and_answers[0]
+        return desirable_packet, ""
+
+
+def guess_back_ttl(current_ttl, ttl):
+    backttl = 0
+    if ttl <= 20:
+        backttl = int((current_ttl - ttl) / 2) + 1
+    elif ttl <= 64:
+        backttl = 64 - ttl + 1
+    elif ttl <= 128:
+        backttl = 128 - ttl + 1
+    else:
+        backttl = 255 - ttl + 1
+    return backttl
+
+
+def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake):
+    if answered is not None and len(answered) != 0:
+        request_and_answer, summary_postfix = choose_desirable_packet(
+            answered, do_tcphandshake)
+        if request_and_answer is not None and len(answered) != 0:
+            req_answer = request_and_answer[1]
+            packet_send_time = request_and_answer[0].sent_time
+            packet_receive_time = req_answer.time
+            packet_elapsed_ms = float(
+                format(abs((packet_receive_time - packet_send_time) * 1000), '.3f'))
+            if packet_elapsed_ms > 0:
+                elapsed_ms = packet_elapsed_ms
+            backttl = guess_back_ttl(current_ttl, req_answer[IP].ttl)
+            print("   <<< answer:"
+                  + "   ip.src: " + req_answer[IP].src
+                  + "   ip.ttl: " + str(req_answer[IP].ttl)
+                  + "   back-ttl: " + str(backttl))
+            answer_summary = req_answer.summary()
+            print("      " + answer_summary)
+            print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
+            if len(summary_postfix) != 0:
+                answer_summary += " . - - . - . " + summary_postfix
+            return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary, answered, unanswered
+    # else for both:
+    print("              *** no response *** ")
+    print("· - · · · rtt: " + str(elapsed_ms) +
+          "ms · · · · · · · · timeout ")
+    return "***", elapsed_ms, 0, 0, "*", answered, unanswered
 
 
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
@@ -260,37 +302,10 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
         return request_and_answers, unanswered
     if do_tcphandshake:
         sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
-    if len(request_and_answers) == 0:
-        return parse_packet(None, current_ttl, elapsed_ms)
-    else:
-        if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
-            # request_and_answers.summary()
-            summary_postfix = str(request_and_answers.summary)
-            print("    " + summary_postfix)
-            if len(request_and_answers) > 1:
-                if request_and_answers[0][1][TCP].flags == "A" and request_and_answers[1][1].haslayer(ICMP):
-                    # todo xhdix: flag the first hop as a middlebox
-                    print(
-                        "--.- .-. -- the first answer is from a middlebox (╯°□°)╯︵ ┻━┻")
-                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
-                # todo xhdix: flag as middlebox if [0][1][TCP].flags in ["R", "RA", "F", "FA"] and [1][1].haslayer(ICMP
-                elif request_and_answers[0][1][TCP].flags in ["R", "RA", "F", "FA"]:
-                    return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
-                else:
-                    return parse_packet(request_and_answers[1], current_ttl, elapsed_ms, summary_postfix)
-            # we need hello from server, not ACK from middlebox
-            elif request_and_answers[0][1][TCP].flags != "A":
-                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
-            # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
-            elif request_and_answers[0][1][TCP].flags == "A" and request_and_answers[0][1].haslayer(Raw):
-                return parse_packet(request_and_answers[0], current_ttl, elapsed_ms, summary_postfix)
-            else:
-                return parse_packet(None, current_ttl, elapsed_ms, summary_postfix)
-        else:
-            return parse_packet(request_and_answers[0], current_ttl, elapsed_ms)
+    return parse_packet(request_and_answers, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
 
 
-def already_reached_destination(previous_node_id, current_node_ip):
+def already_reached_destination_int(previous_node_id, current_node_ip):
     if previous_node_id == current_node_ip:
         return True
     else:
@@ -312,7 +327,7 @@ def are_equal(original_list, result_list):
     return True
 
 
-def initialize_first_nodes(request_ips):
+def initialize_first_nodes_json(request_ips):
     nodes = []
     for _ in request_ips:
         nodes.append(SOURCE_IP_ADDRESS)
@@ -324,7 +339,7 @@ def initialize_first_nodes(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
-        packet_1_port, packet_2_port, packet_1_size, packet_2_size):
+        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id):
     # source_address = get_if_addr(conf.iface) #todo: xhdix
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
@@ -333,7 +348,7 @@ def initialize_json_first_nodes(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
-                timestamp=start_time, size=packet_1_size
+                timestamp=start_time, paris_id=paris_id, size=packet_1_size
             )
         )
         if have_2_packet:
@@ -341,7 +356,7 @@ def initialize_json_first_nodes(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
-                    timestamp=start_time, size=packet_2_size
+                    timestamp=start_time, paris_id=paris_id, size=packet_2_size
                 )
             )
 
@@ -384,19 +399,20 @@ def save_measurement_data(
     end_time = int(datetime.utcnow().timestamp())
     measurement_data_json = []
     ip_steps = 0
+    measurement_data_save = deepcopy(measurement_data)
     while ip_steps < len(request_ips):
-        measurement_data[0][ip_steps].set_endtime(end_time)
+        measurement_data_save[0][ip_steps].set_endtime(end_time)
         if not continue_to_max_ttl:
-            measurement_data[0][ip_steps].clean_extra_result()
-        measurement_data_json.append(measurement_data[0][ip_steps])
+            measurement_data_save[0][ip_steps].clean_extra_result()
+        measurement_data_json.append(measurement_data_save[0][ip_steps])
         if have_2_packet:
-            measurement_data[1][ip_steps].set_endtime(end_time)
+            measurement_data_save[1][ip_steps].set_endtime(end_time)
             if not continue_to_max_ttl:
-                measurement_data[1][ip_steps].clean_extra_result()
-            measurement_data_json.append(measurement_data[1][ip_steps])
+                measurement_data_save[1][ip_steps].clean_extra_result()
+            measurement_data_json.append(measurement_data_save[1][ip_steps])
         ip_steps += 1
     data_path = output_dir + measurement_name + ".json"
-    with open(data_path, "a") as jsonfile:
+    with open(data_path, "w") as jsonfile:
         jsonfile.write(json.dumps(measurement_data_json,
                        default=lambda o: o.__dict__, indent=4))
     print("saved: " + data_path)
@@ -503,11 +519,16 @@ def trace_route(
     repeat_all_steps = 0
     p1_proto, p2_proto, p1_port, p2_port, p1_size, p2_size = get_packets_info(
         request_packets)
+    paris_id = 0
+    if trace_with_retransmission:
+        paris_id = repeat_requests
+    elif trace_retransmission:
+        paris_id = -1
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,
         packet_1_port=p1_port, packet_2_port=p2_port,
-        packet_1_size=p1_size, packet_2_size=p2_size
+        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
@@ -517,7 +538,7 @@ def trace_route(
             request_packets_for_rexmit = generate_packets_for_each_ip(
                 request_packets, request_ips, do_tcphandshake)
             trace_retransmission = True
-        previous_node_ids = initialize_first_nodes(request_ips)
+        previous_node_ids = initialize_first_nodes_json(request_ips)
         for current_ttl in range(1, max_ttl + 1):
             if not continue_to_max_ttl and are_equal(request_ips, previous_node_ids):
                 ip_steps = 0
@@ -525,7 +546,7 @@ def trace_route(
                 while ip_steps < len(request_ips):
                     # to avoid confusing the order of results when we have already reached our destination
                     measurement_data[access_block_steps][ip_steps].add_hop(
-                        current_ttl, "", 0, 0, 0, ""
+                        current_ttl, "", 0, 0, 0, "", None, None
                     )
                     ip_steps += 1
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
@@ -540,7 +561,7 @@ def trace_route(
                 print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                 while ip_steps < len(request_ips):
                     sleep_time = SLEEP_TIME
-                    not_yet_destination = not (already_reached_destination(
+                    not_yet_destination = not (already_reached_destination_int(
                         previous_node_ids[access_block_steps][ip_steps],
                         request_ips[ip_steps]))
                     current_packet = None
@@ -550,26 +571,26 @@ def trace_route(
                         current_packet = request_packets[access_block_steps]
                     if not continue_to_max_ttl:
                         if not_yet_destination:
-                            answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
+                            answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered = send_packet(
                                 current_packet, request_ips[ip_steps],
                                 current_ttl, timeout, do_tcphandshake[access_block_steps],
                                 trace_retransmission, False)
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
+                                current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered
                             )
                         else:
                             sleep_time = 0
                             # to avoid confusing the order of results when we have already reached our destination
                             measurement_data[access_block_steps][ip_steps].add_hop(
-                                current_ttl, "", 0, 0, 0, ""
+                                current_ttl, "", 0, 0, 0, "", None, None
                             )
                     else:
-                        answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary = send_packet(
+                        answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered = send_packet(
                             current_packet, request_ips[ip_steps],
                             current_ttl, timeout, do_tcphandshake[access_block_steps],
                             trace_retransmission, False)
                         measurement_data[access_block_steps][ip_steps].add_hop(
-                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary
+                            current_ttl, answer_ip, elapsed_ms, packet_size, req_answer_ttl, answer_summary, answered, unanswered
                         )
                     if not_yet_destination:
                         if answer_ip == "***":
