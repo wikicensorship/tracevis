@@ -47,52 +47,54 @@ def detect_nat_pep_middlebox(sent, received):
     packet_type = ""
     tcpflag = ""
     if not 'ICMP' in received[0].keys():
-        desirable_packet = None
         # sent packet 1 = {}
         # received packets = [
         #                     {received packet 1},
         #                     {received packet 2},
         #                     {received packet 3}
         #                    ]
-        if len(received) > 1:
-            if received[0]['TCP']['flags'] == "A" and 'ICMP' in received[1].keys():
-                is_pep = True
-                packet_type = get_packet_type(received[1])
-                if 'ICMP' in received[1].keys():
+        if 'TCP' in received[0].keys():
+            if len(received) > 1:
+                if received[0]['TCP']['flags'] == "A" and 'ICMP' in received[1].keys():
+                    is_pep = True
+                    packet_type = get_packet_type(received[1])
                     if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
                         is_nat = True
-            if received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"] and 'ICMP' in received[1].keys():
-                is_pep = True
-                is_middlebox = True
-                packet_type = get_packet_type(received[1])
-                if 'ICMP' in received[1].keys():
+                elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"] and 'ICMP' in received[1].keys():
+                    is_pep = True
+                    is_middlebox = True
+                    packet_type = get_packet_type(received[1])
                     if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
                         is_nat = True
-            elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"]:
+                elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"]:
+                    packet_type = get_packet_type(received[0])
+                    tcpflag = received[0]['TCP']['flags']
+                    if received[0]['IP']['id'] == sent['IP']['id']:
+                        is_middlebox = True
+                else:
+                    packet_type = get_packet_type(received[1])
+                    if packet_type == 'TCP':
+                        tcpflag = received[1]['TCP']['flags']
+                    if received[1]['IP']['id'] == sent['IP']['id']:
+                        is_middlebox = True
+            # we need hello from server, not ACK from middlebox
+            elif received[0]['TCP']['flags'] != "A":
+                packet_type = get_packet_type(received[0])
+                tcpflag = received[0]['TCP']['flags']
+                if received[0]['IP']['id'] == sent['IP']['id']:
+                    is_middlebox = True
+            # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
+            elif received[0]['TCP']['flags'] == "A" and received[0].haslayer('Raw'):
                 packet_type = get_packet_type(received[0])
                 tcpflag = received[0]['TCP']['flags']
                 if received[0]['IP']['id'] == sent['IP']['id']:
                     is_middlebox = True
             else:
-                packet_type = get_packet_type(received[1])
-                if packet_type == 'TCP':
-                    tcpflag = received[1]['TCP']['flags']
-                if received[1]['IP']['id'] == sent['IP']['id']:
-                    is_middlebox = True
-        # we need hello from server, not ACK from middlebox
-        elif received[0]['TCP']['flags'] != "A":
-            packet_type = get_packet_type(received[0])
-            tcpflag = received[0]['TCP']['flags']
-            if received[0]['IP']['id'] == sent['IP']['id']:
-                is_middlebox = True
-        # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
-        elif received[0]['TCP']['flags'] == "A" and received[0].haslayer('Raw'):
-            packet_type = get_packet_type(received[0])
-            tcpflag = received[0]['TCP']['flags']
-            if received[0]['IP']['id'] == sent['IP']['id']:
-                is_middlebox = True
+                is_pep = True
         else:
-            pass  # todo xhdix
+            packet_type = get_packet_type(received[0])
+            if received[0]['IP']['id'] == sent['IP']['id']:
+                is_middlebox = True
     else:
         packet_type = 'ICMP'
         if received[0]['IP in ICMP']['id'] != sent['IP']['id']:
