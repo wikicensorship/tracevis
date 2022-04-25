@@ -58,14 +58,18 @@ def detect_nat_pep_middlebox(sent, received):
                 if received[0]['TCP']['flags'] == "A" and 'ICMP' in received[1].keys():
                     is_pep = True
                     packet_type = get_packet_type(received[1])
-                    if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
+                    if received[1]['IP in ICMP']['chksum'] != sent['IP']['chksum'] and received[1]['IP in ICMP']['id'] == sent['IP']['id']:
                         is_nat = True
+                    if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
+                        is_pep = True # todo xhdix: mark as $something else
                 elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"] and 'ICMP' in received[1].keys():
                     is_pep = True
                     is_middlebox = True
                     packet_type = get_packet_type(received[1])
-                    if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
+                    if received[1]['IP in ICMP']['chksum'] != sent['IP']['chksum'] and received[1]['IP in ICMP']['id'] == sent['IP']['id']:
                         is_nat = True
+                    if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
+                        is_pep = True # todo xhdix: mark as $something else
                 elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"]:
                     packet_type = get_packet_type(received[0])
                     tcpflag = received[0]['TCP']['flags']
@@ -97,8 +101,10 @@ def detect_nat_pep_middlebox(sent, received):
                 is_middlebox = True
     else:
         packet_type = 'ICMP'
-        if received[0]['IP in ICMP']['id'] != sent['IP']['id']:
+        if received[0]['IP in ICMP']['chksum'] != sent['IP']['chksum'] and received[0]['IP in ICMP']['id'] == sent['IP']['id']:
             is_nat = True
+        if received[0]['IP in ICMP']['id'] != sent['IP']['id']:
+            is_pep = True # todo xhdix: mark as $something else
     return is_nat, is_middlebox, is_pep, packet_type, tcpflag
 
 
