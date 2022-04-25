@@ -40,6 +40,38 @@ def get_packet_type(packet_obj):
         return list(packet_obj.keys())[1]
 
 
+def take_one_complement(chksum_int_value):
+    complement_str = ''
+    for ch in "{0:04x}".format(chksum_int_value):
+        complement_str += ("{0:01x}".format(15 - int(ch, base=16)))
+    return int(complement_str, base=16)
+
+
+def calculate_chksum(ip_in_icmp, sent_ttl):
+    # the word for checksum is hex of TTL and proto. i.e.: 0xttlproto
+    # so each TTL worth 256
+    sent_ttl_int = int(sent_ttl)
+    received_chksum = ip_in_icmp['chksum']
+    received_ttl_int = int(ip_in_icmp['ttl'])
+    checksum_str = ''
+    if sent_ttl_int > 1 and sent_ttl_int > received_ttl_int:
+        corrected_ttl = sent_ttl_int - received_ttl_int
+        remained_value = corrected_ttl * 256
+        checksum_hex = take_one_complement(int(received_chksum, base=16))
+        checksum_tmp = checksum_hex + remained_value
+        max_chksum_value = 0xffff
+        if checksum_tmp > max_chksum_value:
+            checksum_tmp = (checksum_tmp & max_chksum_value) + \
+                (checksum_tmp >> 16)
+            if checksum_tmp > max_chksum_value:
+                checksum_tmp = (checksum_tmp & max_chksum_value) + \
+                    (checksum_tmp >> 16)
+        checksum_str = hex(take_one_complement(checksum_tmp))
+    else:
+        checksum_str = received_chksum
+    return checksum_str
+
+
 def detect_nat_pep_middlebox(sent, received):
     is_nat = False
     is_middlebox = False
@@ -58,18 +90,23 @@ def detect_nat_pep_middlebox(sent, received):
                 if received[0]['TCP']['flags'] == "A" and 'ICMP' in received[1].keys():
                     is_pep = True
                     packet_type = get_packet_type(received[1])
-                    if received[1]['IP in ICMP']['chksum'] != sent['IP']['chksum'] and received[1]['IP in ICMP']['id'] == sent['IP']['id']:
+                    ip_id_is_same = received[1]['IP in ICMP']['id'] == sent['IP']['id']
+                    calculated_chksum = calculate_chksum(
+                        received[1]['IP in ICMP'], sent['IP']['ttl'])
+                    if calculated_chksum != sent['IP']['chksum'] and ip_id_is_same:
                         is_nat = True
-                    if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
-                        is_pep = True # todo xhdix: mark as $something else
+                    if not ip_id_is_same:
+                        is_pep = True  # todo xhdix: mark as $something else
                 elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"] and 'ICMP' in received[1].keys():
                     is_pep = True
                     is_middlebox = True
                     packet_type = get_packet_type(received[1])
-                    if received[1]['IP in ICMP']['chksum'] != sent['IP']['chksum'] and received[1]['IP in ICMP']['id'] == sent['IP']['id']:
+                    calculated_chksum = calculate_chksum(
+                        received[1]['IP in ICMP'], sent['IP']['ttl'])
+                    if calculated_chksum != sent['IP']['chksum'] and ip_id_is_same:
                         is_nat = True
-                    if received[1]['IP in ICMP']['id'] != sent['IP']['id']:
-                        is_pep = True # todo xhdix: mark as $something else
+                    if not ip_id_is_same:
+                        is_pep = True  # todo xhdix: mark as $something else
                 elif received[0]['TCP']['flags'] in ["R", "RA", "F", "FA"]:
                     packet_type = get_packet_type(received[0])
                     tcpflag = received[0]['TCP']['flags']
@@ -101,10 +138,13 @@ def detect_nat_pep_middlebox(sent, received):
                 is_middlebox = True
     else:
         packet_type = 'ICMP'
-        if received[0]['IP in ICMP']['chksum'] != sent['IP']['chksum'] and received[0]['IP in ICMP']['id'] == sent['IP']['id']:
+        ip_id_is_same = received[0]['IP in ICMP']['id'] == sent['IP']['id']
+        calculated_chksum = calculate_chksum(
+            received[0]['IP in ICMP'], sent['IP']['ttl'])
+        if calculated_chksum != sent['IP']['chksum'] and ip_id_is_same:
             is_nat = True
-        if received[0]['IP in ICMP']['id'] != sent['IP']['id']:
-            is_pep = True # todo xhdix: mark as $something else
+        if not ip_id_is_same:
+            is_pep = True  # todo xhdix: mark as $something else
     return is_nat, is_middlebox, is_pep, packet_type, tcpflag
 
 
