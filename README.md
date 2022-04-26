@@ -11,6 +11,11 @@ TraceVis is a research project whose main goal is to find middleboxes. Where a p
 
 ## Install and build
 
+#### Note:
+You need to install [npcap](https://npcap.com/) in **Windows**. If you already have programs like Wireshark or Nmap/Zenmap, they will install this automatically. 
+
+(**Not** required on **Linux**.)
+
 ##### Pull docker image from github container registry:
 
 ```sh
