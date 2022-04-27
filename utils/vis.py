@@ -125,7 +125,7 @@ def detect_nat_pep_middlebox(sent, received):
                 if received[0]['IP']['id'] == sent['IP']['id']:
                     is_middlebox = True
             # here we just want to have a correct path, so we ignore the lack of ACK before Server Hello in some weird networks
-            elif received[0]['TCP']['flags'] == "A" and received[0].haslayer('Raw'):
+            elif received[0]['TCP']['flags'] == "A" and 'Raw' in received[0].keys():
                 packet_type = get_packet_type(received[0])
                 tcpflag = received[0]['TCP']['flags']
                 if received[0]['IP']['id'] == sent['IP']['id']:
