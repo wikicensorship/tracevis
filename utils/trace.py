@@ -191,8 +191,9 @@ def send_packet_with_tcphandshake(this_request, timeout):
     while len(ans) == 0 and max_repeat < 5:
         source_port = ephemeral_port_reserve("tcp")
         send_syn = IP(
-            dst=ip_address, id=RandShort())/TCP(
-            sport=source_port, dport=destination_port, seq=RandInt(), flags="S", options=syn_tcp_options)
+            dst=ip_address, id=RandShort(), flags="DF")/TCP(
+            sport=source_port, dport=destination_port, seq=RandInt(),
+            flags="S",options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
         ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
         if len(ans) == 0:
@@ -212,7 +213,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
         ack_tcp_options = generate_ack_tcp_options(
             new_timestamp, syn_ack_timestamp)
         send_ack = IP(
-            dst=ip_address, id=(ans[0][0][IP].id + 1))/TCP(
+            dst=ip_address, id=(ans[0][0][IP].id + 1), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
             ack=ans[0][1][TCP].seq + 1, flags="A", options=ack_tcp_options)
         send(send_ack, verbose=0)

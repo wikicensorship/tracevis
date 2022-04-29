@@ -101,6 +101,7 @@ def detect_nat_pep_middlebox(sent, received):
                     is_pep = True
                     is_middlebox = True
                     packet_type = get_packet_type(received[1])
+                    ip_id_is_same = received[1]['IP in ICMP']['id'] == sent['IP']['id']
                     calculated_chksum = calculate_chksum(
                         received[1]['IP in ICMP'], sent['IP']['ttl'])
                     if calculated_chksum != sent['IP']['chksum'] and ip_id_is_same:
