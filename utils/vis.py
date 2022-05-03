@@ -3,6 +3,8 @@
 import ipaddress
 import json
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 import networkx as nx
 from pyvis.network import Network
@@ -254,7 +256,7 @@ def save_measurement_graph(graph_name, attach_jscss):
         graph_name = graph_name[:-5]
     graph_path = graph_name + ".html"
     net_vis.save_graph(graph_path)
-    print("saved: " + graph_path)
+    logger.info("saved: " + graph_path)
 
 
 def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
@@ -381,6 +383,6 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                     previous_node_ids[repeat_steps] = current_node_id
                 repeat_steps += 1
         measurement_steps += 1
-    print("saving measurement graph...")
+    logger.info("saving measurement graph...")
     save_measurement_graph(measurement_path, attach_jscss)
-    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
+    logger.info("· · · - · -     · · · - · -     · · · - · -     · · · - · -")

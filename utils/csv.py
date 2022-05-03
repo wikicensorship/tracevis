@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
 import os.path
+import logging 
+logger = logging.getLogger(__name__)
 
 csv_header_all = ""
 csv_blank_row = ""
@@ -27,7 +29,7 @@ def parse_json(file_name: str) -> list:
     try:
         json_data = json.loads(json_str)
     except:
-        print("JSON format is not valid!")
+        logger.error("JSON format is not valid!")
         return ""
     for measurement in json_data:
         dst_addr = measurement["dst_addr"]
@@ -114,8 +116,8 @@ def json2csv(file_name: str, sort_it: bool = True):
                 data = sorted(data, key=lambda d: d['hop'])
             csv = data_to_csv(data, sort_it)
             if csv != "": # todo (xhdix): it will never be empty. we shold do better
-                print("saving measurement in csv...")
+                logger.info("saving measurement in csv...")
                 csvfile.write(csv)
-                print("saved: " + new_file_name)
+                logger.info("saved: " + new_file_name)
     else:
-        print("error: " + file_name + " does not exist!")
+        logger.error("error: " + file_name + " does not exist!")

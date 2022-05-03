@@ -4,7 +4,8 @@ from scapy.utils import import_hexcap
 import subprocess
 import base64
 import json 
-
+import logging
+logger = logging.getLogger(__name__)
 
 FIREWALL_COMMANDS_HELP = "\r\n( · - · · · \r\n\
 You may need to temporarily block RST output packets in your firewall.\r\n\
@@ -111,9 +112,9 @@ class InputPacketInfo:
         if not  cls._supported_or_correct(p1):
             raise BADPacketException("it's not IPv4 or the hexdump is not started with IP layer")
         if show:
-            print(" . . . - . developed view of this packet:")
+            logger.debug(" . . . - . developed view of this packet:")
             p1.show()
-            print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+            logger.debug(" . . . - .     . . . - .     . . . - .     . . . - . ")
         return p1
 
 
@@ -139,7 +140,7 @@ class InputPacketInfo:
                         raise FirewallException("No iptables!")
                 else:
                     do_tcph1 = cls._ask_yesno("Would you like to do a TCP Handshake before sending this packet?")
-                print(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
+                logger.info(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
 
                     
             if cls._ask_yesno("Would you like to add a second packet"):
@@ -147,7 +148,7 @@ class InputPacketInfo:
                 if copy_packet_2.haslayer(TCP):
                     if copy_packet_2[TCP].flags == "PA":
                         do_tcph2 = cls._ask_yesno("Would you like to do a TCP Handshake before sending this packet?")
-        print(" ********************************************************************** ")
+        logger.info(" ********************************************************************** ")
         return InputPacketInfo(copy_packet_1, copy_packet_2, do_tcph1,  do_tcph2, add_firewall_rule)
 
     @classmethod
@@ -155,13 +156,13 @@ class InputPacketInfo:
         if json_config[k]['hex'].startswith("b64:"):
             json_config[k]['hex'] = base64.b64decode(json_config[k]['hex'][4:].strip()).decode()
         packet = IP(import_hexcap(json_config[k]['hex']))
-        print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-        print(" . . . - . developed view of first packet:")
+        logger.info(" . . . - .     . . . - .     . . . - .     . . . - . ")
+        logger.info(" . . . - . developed view of first packet:")
         if not cls._supported_or_correct(packet):
             BADPacketException(f"{k} it's not IPv4 or the hexdump is not started with IP layer")
         if show:
             packet.show()
-            print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+            logger.info(" . . . - .     . . . - .     . . . - .     . . . - . ")
         return packet
         
     @classmethod
@@ -185,9 +186,9 @@ class InputPacketInfo:
                         if copy_packet_2[TCP].flags == "PA":
                             do_tcph2 = json_config['packet2'].get('handshake', False)
             add_firewall_rule = json_config.get('add_firewall_drop', False)            
-            print(" ********************************************************************** ")
+            logger.info(" ********************************************************************** ")
         except FileNotFoundError:
-            print(f" · · · · · · · · file '{file}' not found!.")
+            logger.error(f" · · · · · · · · file '{file}' not found!.")
             raise BADPacketException("File Not Found")
         return InputPacketInfo(copy_packet_1, copy_packet_2, do_tcph1,  do_tcph2, add_firewall_rule)
 
@@ -210,10 +211,10 @@ class InputPacketInfo:
         if not cls._supported_or_correct(packet):
             raise BADPacketException("it's not IPv4 or the hexdump is not started with IP layer")
         if show:
-            print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-            print(" . . . - . developed view of first packet:")
+            logger.debug(" . . . - .     . . . - .     . . . - .     . . . - . ")
+            logger.debug(" . . . - . developed view of first packet:")
             packet.show()
-            print(" . . . - .     . . . - .     . . . - .     . . . - . ")
+            logger.debug(" . . . - .     . . . - .     . . . - .     . . . - . ")
         return packet
 
     @classmethod
@@ -237,12 +238,12 @@ class InputPacketInfo:
                     raise FirewallException("No iptables!")
             else:
                 do_tcph1 = cls._ask_yesno("Would you like to do a TCP Handshake before sending this packet?")
-            print(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
+            logger.info(" · - · - ·     · - · - ·     · - · - ·     · - · - · ")
 
             if cls._ask_yesno("Would you like to add a second packet"):
                 copy_packet_2 = cls._read_interactive_packet(show=True)
                 if copy_packet_2.haslayer(TCP) and copy_packet_2[TCP].flags == "PA":
                     do_tcph2 = cls._ask_yesno("Would you like to do a TCP Handshake before sending this packet?")
-        print(" ********************************************************************** ")
+        logger.info(" ********************************************************************** ")
         return InputPacketInfo(copy_packet_1, copy_packet_2, do_tcph1,  do_tcph2, add_firewall_rule)
 

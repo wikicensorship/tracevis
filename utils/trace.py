@@ -10,6 +10,9 @@ import time
 from copy import deepcopy
 from datetime import datetime
 from time import sleep
+import logging
+logger = logging.getLogger(__name__)
+
 
 from scapy.all import Raw, conf, get_if_addr
 from scapy.layers.dns import DNS
@@ -30,7 +33,7 @@ OS_NAME = platform.system()
 def choose_desirable_packet(request_and_answers, do_tcphandshake):
     # request_and_answers.summary()
     summary_postfix = str(request_and_answers.summary)
-    print("    " + summary_postfix)
+    logger.debug("    " + summary_postfix)
     if do_tcphandshake and not request_and_answers[0][1].haslayer(ICMP):
         desirable_packet = None
         # [0][0] = sent packet 1 -- [0][1] == received packet 1
@@ -85,20 +88,20 @@ def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
             if packet_elapsed_ms > 0:
                 elapsed_ms = packet_elapsed_ms
             backttl = guess_back_ttl(current_ttl, req_answer[IP].ttl)
-            print("   <<< answer:"
-                  + "   ip.src: " + req_answer[IP].src
-                  + "   ip.ttl: " + str(req_answer[IP].ttl)
-                  + "   back-ttl: " + str(backttl))
+            logger.debug("   <<< answer:" 
+                          "   ip.src: " + req_answer[IP].src +
+                          "   ip.ttl: " + str(req_answer[IP].ttl) +
+                          "   back-ttl: " + str(backttl))
             answer_summary = req_answer.summary()
-            print("      " + answer_summary)
-            print("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
+            logger.debug("      " + answer_summary)
+            logger.debug("· - · · · rtt: " + str(elapsed_ms) + "ms · · · - · ")
             if len(summary_postfix) != 0:
                 answer_summary += " . - - . - . " + summary_postfix
             return req_answer[IP].src, elapsed_ms, len(req_answer), req_answer[IP].ttl, answer_summary, answered, unanswered
     # else for both:
-    print("              *** no response *** ")
-    print("· - · · · rtt: " + str(elapsed_ms) +
-          "ms · · · · · · · · timeout ")
+    logger.info("              *** no response *** ")
+    logger.info("· - · · · rtt: " + str(elapsed_ms) +
+                 "ms · · · · · · · · timeout ")
     return "***", elapsed_ms, 0, 0, "*", answered, unanswered
 
 
@@ -197,12 +200,12 @@ def send_packet_with_tcphandshake(this_request, timeout):
         tcp_handshake_timeout = timeout + max_repeat
         ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
         if len(ans) == 0:
-            print("Warning: No response to SYN packet yet")
+            logger.warning("Warning: No response to SYN packet yet")
         max_repeat += 1
     if len(ans) == 0:
-        print("Error: doing TCP handshake failed "
-              + str(max_repeat)
-              + " times. You should test with PingVis instead")  # todo: xhdix
+        logger.error("Error: doing TCP handshake failed "
+                    + str(max_repeat)
+                    + " times. You should test with PingVis instead")  # todo: xhdix
         sleep(timeout + max_repeat)  # double sleep (￣o￣) . z Z.
         return ans, unans
     else:
@@ -282,9 +285,9 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     this_request[IP].dst = request_ip
     this_request[IP].ttl = current_ttl
     if not do_not_parse:
-        print(">>>request:"
-              + "   ip.dst: " + request_ip
-              + "   ip.ttl: " + str(current_ttl))
+        logger.debug(">>>request:"
+                    + "   ip.dst: " + request_ip
+                    + "   ip.ttl: " + str(current_ttl))
     request_and_answers = []
     unanswered = []
     start_time = time.perf_counter()
@@ -416,14 +419,14 @@ def save_measurement_data(
     with open(data_path, "w") as jsonfile:
         jsonfile.write(json.dumps(measurement_data_json,
                        default=lambda o: o.__dict__, indent=4))
-    print("saved: " + data_path)
+    logger.info("saved: " + data_path)
     return data_path
 
 
 def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
     request_packets_for_rexmit = [[], []]
     req_step = 0
-    print("· - · · · wait · - · · · in preparation · - · · ·")
+    logger.info("· - · · · wait · - · · · in preparation · - · · ·")
     for req_packet in request_packets:
         for dst_ip in request_ips:
             new_packet = req_packet.copy()
@@ -437,13 +440,10 @@ def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
                 request_packets_for_rexmit[req_step].append(
                     unanswered[0][0].copy())
         req_step = 1
-    print("- · - · -     - · - · -     - · - · -     - · - · -")
-    print(
-        " ********************************************************************** ")
-    print(
-        " ********************************************************************** ")
-    print(
-        " ********************************************************************** ")
+    logger.info("- · - · -     - · - · -     - · - · -     - · - · -")
+    logger.info(" ********************************************************************** ")
+    logger.info(" ********************************************************************** ")
+    logger.info(" ********************************************************************** ")
     return request_packets_for_rexmit
 
 
@@ -454,7 +454,7 @@ def check_for_permission():
             sport=0, dport=53)/DNS()
         sr1(this_request, verbose=0, timeout=0)
     except OSError:
-        print("Error: Unable to send a packet with unprivileged user. Please run as root/admin.")
+        logger.error("Error: Unable to send a packet with unprivileged user. Please run as root/admin.")
         sys.exit(1)
 
 
@@ -479,7 +479,7 @@ def trace_route(
     if do_tcph2:
         annotation_2 += " (+tcph)"
     if request_packet_1 is None:
-        print("packet is invalid!")
+        logger.error("packet is invalid!")
         exit()
     if request_packet_2 == "":
         if trace_retransmission:
@@ -500,10 +500,10 @@ def trace_route(
         if request_packet_1[IP].dst == "" or request_packet_1[IP].dst == LOCALHOST:
             if have_2_packet:
                 if request_packet_2[IP].dst == "" or request_packet_2[IP].dst == LOCALHOST:
-                    print("You must set at least one IP. (--ips || -i)")
+                    logger.error("You must set at least one IP. (--ips || -i)")
                     exit()
             else:
-                print("You must set at least one IP. (--ips || -i)")
+                logger.error("You must set at least one IP. (--ips || -i)")
                 exit()
         else:
             request_ips.append(request_packet_1[IP].dst)
@@ -531,7 +531,7 @@ def trace_route(
         packet_1_port=p1_port, packet_2_port=p2_port,
         packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id
     )
-    print("- · - · -     - · - · -     - · - · -     - · - · -")
+    logger.info("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
         repeat_all_steps += 1
         request_packets_for_rexmit = []
@@ -556,10 +556,9 @@ def trace_route(
             else:
                 ip_steps = 0
                 access_block_steps = 0
-                print(
-                    "  · - · - · repeat step: " + str(repeat_all_steps)
-                    + "  · - · - ·  ttl step: " + str(current_ttl) + " · - · - ·")
-                print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
+                logger.info("  · - · - · repeat step: " + str(repeat_all_steps)
+                           + "  · - · - ·  ttl step: " + str(current_ttl) + " · - · - ·")
+                logger.info(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                 while ip_steps < len(request_ips):
                     sleep_time = SLEEP_TIME
                     not_yet_destination = not (already_reached_destination_int(
@@ -597,27 +596,24 @@ def trace_route(
                         if answer_ip == "***":
                             sleep_time = 0
                         previous_node_ids[access_block_steps][ip_steps] = answer_ip
-                    print(
-                        " · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
+                    logger.info(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
                     sleep(sleep_time)
                     ip_steps += 1
                     was_successful = True
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
                         ip_steps = 0
                         access_block_steps = 1
-                        print(
-                            " ********************************************************************** ")
-                print(
-                    " ********************************************************************** ")
-                print(
-                    " ********************************************************************** ")
-                print(
-                    " ********************************************************************** ")
+                        logger.info(" ********************************************************************** ")
+                logger.info(" ********************************************************************** ")
+                logger.info(" ********************************************************************** ")
+                logger.info(" ********************************************************************** ")
+                data_path = save_measurement_data(
+                    request_ips, measurement_name, continue_to_max_ttl, output_dir)
     if was_successful:
-        print("saving measurement data...")
+        logger.info("saving measurement data...")
         data_path = save_measurement_data(
             request_ips, measurement_name, continue_to_max_ttl, output_dir)
-        print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
+        logger.info("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
         return(was_successful, data_path)
     else:
         return(was_successful, "")
