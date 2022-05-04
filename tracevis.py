@@ -18,8 +18,7 @@ import logging
 import json
 from copy import deepcopy
 
-logging.basicConfig(level=logging.DEBUG, format='%(message)s')
-logger = logging.getLogger(__name__)
+logger = None
 
 TIMEOUT = 1
 MAX_TTL = 50
@@ -37,6 +36,14 @@ def dump_non_default_args_to_file(file, args):
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
 
 def get_args():
+    global logger
+    log_levels = {
+        'critical': logging.CRITICAL,
+        'error': logging.ERROR,
+        'warning': logging.WARNING,
+        'info': logging.INFO,
+        'debug': logging.DEBUG
+    }
     parser = argparse.ArgumentParser(
         description='Traceroute with any packet. \
             Visualize the routes. Discover Middleboxes and Firewalls', formatter_class=argparse.RawTextHelpFormatter)
@@ -97,14 +104,19 @@ def get_args():
                         help="""change the behavior of the trace route 
 - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)
 - 'new' : to change source port, sequence number, etc in each request (default)
-- 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
-                        )
+- 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit""")
+    parser.add_argument('--log', type=str, default='debug', choices=log_levels.keys(), help='Set log level')
     
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args()
+
+    level = log_levels.get(args.log.lower())
+    logging.basicConfig(level=level, format='%(message)s')
+    logger = logging.getLogger(__name__)
+
     if args.config_file:
         with open(args.config_file) as f:
             return json.load(f)
