@@ -26,10 +26,13 @@ DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
 
 
-def dump_non_default_args_to_file(file, args):
+def dump_non_default_args_to_file(file, args, packet_info):
     args_without_config_arg = args.copy()
     if 'config_file' in args_without_config_arg:
         del args_without_config_arg['config_file']
+    if packet_info:
+        args_without_config_arg['packet_data'] = packet_info.as_dict()
+        args_without_config_arg['packet_input_method'] = 'json'
     with open(file,'w') as f:
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
 
@@ -120,6 +123,7 @@ def main(args):
         else:
             args['packet_data'] = json.loads(args.get('packet_data'))
 
+    input_packet = None 
     name_prefix = ""
     continue_to_max_ttl = False
     max_ttl = MAX_TTL
@@ -255,7 +259,7 @@ def main(args):
             was_successful = True
     if was_successful:
         config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
-        dump_non_default_args_to_file(config_dump_file_name, args)
+        dump_non_default_args_to_file(config_dump_file_name, args, input_packet)
         
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
