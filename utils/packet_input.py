@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from scapy.layers.inet import IP, TCP
-from scapy.utils import import_hexcap
+from scapy.utils import import_hexcap, hexdump 
 import subprocess
 import base64
 import json 
@@ -31,6 +31,22 @@ class InputPacketInfo:
         self._do_tcph1 = do_tcph1
         self._do_tcph2 = do_tcph2
         self._add_firewall_rule = add_firewall_rule
+    
+    def as_dict(self):
+        
+        res = {
+            "packet1": {
+                'hex': 'b64:' + base64.b64encode(hexdump(self._packet1, True).encode()).decode(),
+                'handshake': self._do_tcph1,
+            },
+        }
+        if self._packet2:
+            res['packet2'] = {
+                    'hex': 'b64:' + base64.b64encode(hexdump(self._packet2, True).encode()).decode(),
+                    'handshake': self._do_tcph2,
+            }
+        res["add_firewall_drop"] = self._add_firewall_rule
+        return res 
 
     @property
     def params(self):
