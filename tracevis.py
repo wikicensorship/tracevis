@@ -37,13 +37,6 @@ def dump_non_default_args_to_file(file, args):
 
 def get_args():
     global logger
-    log_levels = {
-        'critical': logging.CRITICAL,
-        'error': logging.ERROR,
-        'warning': logging.WARNING,
-        'info': logging.INFO,
-        'debug': logging.DEBUG
-    }
     parser = argparse.ArgumentParser(
         description='Traceroute with any packet. \
             Visualize the routes. Discover Middleboxes and Firewalls', formatter_class=argparse.RawTextHelpFormatter)
@@ -105,7 +98,7 @@ def get_args():
 - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)
 - 'new' : to change source port, sequence number, etc in each request (default)
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit""")
-    parser.add_argument('--log', type=str, default='debug', choices=log_levels.keys(), help='Set log level')
+    parser.add_argument('--verbose', '-v', action='count', default=0, help='Set log level: -v for WARNING, -vv for INFO, -vvv for DEBUG')
     
     if len(sys.argv) == 1:
         parser.print_help()
@@ -113,8 +106,9 @@ def get_args():
 
     args = parser.parse_args()
 
-    level = log_levels.get(args.log.lower())
-    logging.basicConfig(level=level, format='%(message)s')
+    args.verbose = 40 - (10*args.verbose) if 0 <= args.verbose <= 3 else 40 
+
+    logging.basicConfig(level=args.verbose, format='%(message)s')
     logger = logging.getLogger(__name__)
 
     if args.config_file:
