@@ -26,7 +26,7 @@ DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
 
 
-def dump_non_default_args_to_file(file, args, packet_info):
+def dump_args_to_file(file, args, packet_info):
     args_without_config_arg = args.copy()
     if 'config_file' in args_without_config_arg:
         del args_without_config_arg['config_file']
@@ -35,6 +35,27 @@ def dump_non_default_args_to_file(file, args, packet_info):
         args_without_config_arg['packet_input_method'] = 'json'
     with open(file,'w') as f:
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
+
+def process_input_args(args, parser):
+    cli_args_dict = vars(args)
+    passed_args = {
+        opt.dest 
+        for opt in parser._option_string_actions.values()
+        if hasattr(args, opt.dest) and opt.default != getattr(args, opt.dest)
+    }
+    args_dict = {}
+    if args.config_file:
+        with open(args.config_file) as f:
+            args_dict = json.load(f)
+
+    for k in passed_args:
+        args_dict[k] = cli_args_dict.get(k)
+
+    if 'dns' in passed_args:
+        args_dict['packet'] = None
+        args_dict['packet_input_method'] = None
+    return args_dict
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -105,14 +126,11 @@ def get_args():
         sys.exit(1)
 
     args = parser.parse_args()
-    if args.config_file:
-        with open(args.config_file) as f:
-            return json.load(f)
-    
-    if args.packet_input_method == 'file' and args.packet_file is None:
+    args_dict = process_input_args(args, parser)
+    if args_dict.get('packet_input_method') == 'file' and args_dict.get('packet_file') is None:
         parser.error("--packet-input-method requires --packet-file.")
 
-    return vars(args)
+    return args_dict
 
 
 def main(args):
@@ -259,7 +277,7 @@ def main(args):
             was_successful = True
     if was_successful:
         config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
-        dump_non_default_args_to_file(config_dump_file_name, args, input_packet)
+        dump_args_to_file(config_dump_file_name, args, input_packet)
         
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
