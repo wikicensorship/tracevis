@@ -130,8 +130,6 @@ def get_args():
 
     args = parser.parse_args()
     args_dict = process_input_args(args, parser)
-    if args_dict.get('packet_input_method') == 'file' and args_dict.get('packet_file') is None:
-        parser.error("--packet-input-method requires --packet-file.")
 
     return args_dict
 
