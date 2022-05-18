@@ -52,8 +52,11 @@ def process_input_args(args, parser):
         args_dict[k] = cli_args_dict.get(k)
 
     if 'dns' in passed_args:
-        args_dict['packet'] = None
+        args_dict['packet'] = False
         args_dict['packet_input_method'] = None
+    if 'packet' in passed_args:
+        args_dict['dns'] = False
+
     return args_dict
 
 
