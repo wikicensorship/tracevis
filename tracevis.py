@@ -43,10 +43,10 @@ def process_input_args(args, parser):
         for opt in parser._option_string_actions.values()
         if hasattr(args, opt.dest) and opt.default != getattr(args, opt.dest)
     }
-    args_dict = {}
+    args_dict = cli_args_dict.copy()
     if args.config_file:
         with open(args.config_file) as f:
-            args_dict = json.load(f)
+            args_dict.update(json.load(f))
 
     for k in passed_args:
         args_dict[k] = cli_args_dict.get(k)
