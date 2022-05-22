@@ -5,7 +5,6 @@ import urllib.request
 from datetime import datetime
 from time import sleep
 
-
 MEASUREMENT_IDS = [
     5011,  # c.root-servers.net
     5013,  # e.root-servers.net

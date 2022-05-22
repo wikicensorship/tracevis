@@ -2,8 +2,12 @@
 from __future__ import absolute_import, unicode_literals
 
 import argparse
-import os, sys
+import json
+import os
 import platform
+import sys
+import textwrap
+from copy import deepcopy
 
 import utils.csv
 import utils.dns
@@ -11,12 +15,6 @@ import utils.packet_input
 import utils.ripe_atlas
 import utils.trace
 import utils.vis
-
-import textwrap
-
-import json
-from copy import deepcopy
-
 
 TIMEOUT = 1
 MAX_TTL = 50
@@ -33,13 +31,14 @@ def dump_args_to_file(file, args, packet_info):
     if packet_info:
         args_without_config_arg['packet_data'] = packet_info.as_dict()
         args_without_config_arg['packet_input_method'] = 'json'
-    with open(file,'w') as f:
+    with open(file, 'w') as f:
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
+
 
 def process_input_args(args, parser):
     cli_args_dict = vars(args)
     passed_args = {
-        opt.dest 
+        opt.dest
         for opt in parser._option_string_actions.values()
         if hasattr(args, opt.dest) and opt.default != getattr(args, opt.dest)
     }
@@ -47,16 +46,13 @@ def process_input_args(args, parser):
     if args.config_file:
         with open(args.config_file) as f:
             args_dict.update(json.load(f))
-
     for k in passed_args:
         args_dict[k] = cli_args_dict.get(k)
-
     if 'dns' in passed_args:
         args_dict['packet'] = False
         args_dict['packet_input_method'] = None
     if 'packet' in passed_args:
         args_dict['dns'] = False
-
     return args_dict
 
 
@@ -72,12 +68,13 @@ def get_args():
                         help="add comma-separated IPs (up to 6 for two packet and up to 12 for one packet)")
     parser.add_argument('-p', '--packet', action='store_true',
                         help="receive one or two packets from the IP layer via the terminal input and trace route with")
-    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['json','hex','interactive'], default="hex",
+    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['json', 'hex', 'interactive'], default="hex",
                         help=textwrap.dedent("""Select packet input method 
 - json: load packet data from a json/file(set via --packet-data)
 - hex: paste hex dump of packet into interactive shell 
 - interactive: use full featured scapy and python console to craft packet\n\n"""))
-    parser.add_argument("--packet-data", dest='packet_data', type=str, help="Packet json data if input method is 'json' (use @file to load from file)", default=None)
+    parser.add_argument("--packet-data", dest='packet_data', type=str,
+                        help="Packet json data if input method is 'json' (use @file to load from file)", default=None)
     parser.add_argument('--dns', action='store_true',
                         help="trace route with a simple DNS over UDP packet")
     parser.add_argument('--dnstcp', action='store_true',
@@ -123,14 +120,11 @@ def get_args():
 - 'new' : to change source port, sequence number, etc in each request (default)
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
-    
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
-
     args = parser.parse_args()
     args_dict = process_input_args(args, parser)
-
     return args_dict
 
 
@@ -141,8 +135,7 @@ def main(args):
                 args['packet_data'] = json.load(f)
         else:
             args['packet_data'] = json.loads(args.get('packet_data'))
-
-    input_packet = None 
+    input_packet = None
     name_prefix = ""
     continue_to_max_ttl = False
     max_ttl = MAX_TTL
@@ -216,14 +209,15 @@ def main(args):
         do_traceroute = True
         name_prefix += "packet"
         try:
-            
             if args.get('packet_input_method') == 'json':
-                input_packet = utils.packet_input.InputPacketInfo.from_json(OS_NAME, trace_retransmission, 
+                input_packet = utils.packet_input.InputPacketInfo.from_json(OS_NAME, trace_retransmission,
                                                                             packet_data=deepcopy(args.get('packet_data')))
             elif args.get('packet_input_method') == 'interactive':
-                input_packet = utils.packet_input.InputPacketInfo.from_scapy(OS_NAME, trace_retransmission)
+                input_packet = utils.packet_input.InputPacketInfo.from_scapy(
+                    OS_NAME, trace_retransmission)
             elif args.get('packet_input_method') == 'hex':
-                input_packet = utils.packet_input.InputPacketInfo.from_stdin(OS_NAME, trace_retransmission)
+                input_packet = utils.packet_input.InputPacketInfo.from_stdin(
+                    OS_NAME, trace_retransmission)
             else:
                 raise RuntimeError("Bad input type")
         except (utils.packet_input.BADPacketException, utils.packet_input.FirewallException) as e:
@@ -232,7 +226,6 @@ def main(args):
         except Exception as e:
             print(f"Error!\n{e!s}")
             exit(2)
-
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
@@ -279,7 +272,6 @@ def main(args):
     if was_successful:
         config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
         dump_args_to_file(config_dump_file_name, args, input_packet)
-        
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
                 edge_lable=edge_lable):

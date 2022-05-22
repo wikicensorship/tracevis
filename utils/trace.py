@@ -193,7 +193,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
         send_syn = IP(
             dst=ip_address, id=RandShort(), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=RandInt(),
-            flags="S",options=syn_tcp_options)
+            flags="S", options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
         ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
         if len(ans) == 0:
