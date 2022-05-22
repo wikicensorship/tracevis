@@ -11,6 +11,7 @@ from copy import deepcopy
 from datetime import datetime
 from time import sleep
 
+import requests
 from scapy.all import Raw, conf, get_if_addr
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
@@ -340,8 +341,8 @@ def initialize_first_nodes_json(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
-        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id):
-    # source_address = get_if_addr(conf.iface) #todo: xhdix
+        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id,
+        public_ip, network_asn, network_name, country_code):
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
@@ -349,7 +350,9 @@ def initialize_json_first_nodes(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
-                timestamp=start_time, paris_id=paris_id, size=packet_1_size
+                timestamp=start_time, paris_id=paris_id, size=packet_1_size,
+                from_ip=public_ip, network_asn=network_asn,
+                network_name=network_name, country_code=country_code
             )
         )
         if have_2_packet:
@@ -357,7 +360,9 @@ def initialize_json_first_nodes(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
-                    timestamp=start_time, paris_id=paris_id, size=packet_2_size
+                    timestamp=start_time, paris_id=paris_id, size=packet_2_size,
+                    from_ip=public_ip, network_asn=network_asn,
+                    network_name=network_name, country_code=country_code
                 )
             )
 
@@ -474,6 +479,13 @@ def trace_route(
     request_ips = []
     was_successful = False
     global have_2_packet
+    repeat_all_steps = 0
+    paris_id = 0
+    no_interent = False
+    public_ip = '127.1.2.7'  # we use it to clean it in the result
+    network_asn = 'AS0'
+    network_name = ''
+    country_code = ''
     if do_tcph1:
         annotation_1 += " (+tcph)"
     if do_tcph2:
@@ -512,24 +524,42 @@ def trace_route(
                 request_ips.append(request_packet_2[IP].dst)
     else:
         request_ips = ip_list
-    if name_prefix != "":
-        measurement_name = name_prefix + "-tracevis-" + \
-            datetime.utcnow().strftime("%Y%m%d-%H%M")
-    else:
-        measurement_name = "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
-    repeat_all_steps = 0
     p1_proto, p2_proto, p1_port, p2_port, p1_size, p2_size = get_packets_info(
         request_packets)
-    paris_id = 0
     if trace_with_retransmission:
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
+    try:
+        print("· - · · · detecting IP, ASN, country, etc · - · · · ")
+        # TODO(xhdix): change versioning
+        request_headers = {'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'}
+        with requests.get('https://speed.cloudflare.com/meta', headers=request_headers, timeout=9) as meta_request:
+            if meta_request.status_code == 200:
+                user_meta = meta_request.json()
+                public_ip = user_meta['clientIp']
+                network_asn = "AS" + str(user_meta['asn'])
+                network_name = user_meta['asOrganization']
+                country_code = user_meta['country']
+                print("· · · - · " + public_ip)
+                print("· · · - · " + network_asn)
+                print("· · · - · " + network_name)
+                print("· · · - · " + country_code)
+    except Exception as e:
+        no_interent = True
+        print(f"Notice!\n{e!s}")
+    if name_prefix != "":
+        measurement_name = name_prefix + network_asn + "-tracevis-" + \
+            datetime.utcnow().strftime("%Y%m%d-%H%M")
+    else:
+        measurement_name = network_asn + "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,
         packet_1_port=p1_port, packet_2_port=p2_port,
-        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id
+        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id,
+        public_ip=public_ip, network_asn=network_asn, network_name=network_name,
+        country_code=country_code
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
@@ -618,6 +648,6 @@ def trace_route(
         data_path = save_measurement_data(
             request_ips, measurement_name, continue_to_max_ttl, output_dir)
         print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
-        return(was_successful, data_path)
+        return(was_successful, data_path, no_interent)
     else:
-        return(was_successful, "")
+        return(was_successful, "", no_interent)

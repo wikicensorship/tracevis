@@ -235,25 +235,17 @@ def main(args):
         if args.get("packet") or args.get("rexmit"):
             with input_packet as ctx:
                 packet_1, packet_2, do_tcph1, do_tcph2 = ctx
-                was_successful, measurement_path = utils.trace.trace_route(
-                    ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
-                    max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
-                    request_packet_2=packet_2, name_prefix=name_prefix,
-                    annotation_1=annotation_1, annotation_2=annotation_2,
-                    continue_to_max_ttl=continue_to_max_ttl,
-                    do_tcph1=do_tcph1, do_tcph2=do_tcph2,
-                    trace_retransmission=trace_retransmission,
-                    trace_with_retransmission=trace_with_retransmission)
-        else:
-            was_successful, measurement_path = utils.trace.trace_route(
-                ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
-                max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
-                request_packet_2=packet_2, name_prefix=name_prefix,
-                annotation_1=annotation_1, annotation_2=annotation_2,
-                continue_to_max_ttl=continue_to_max_ttl,
-                do_tcph1=do_tcph1, do_tcph2=do_tcph2,
-                trace_retransmission=trace_retransmission,
-                trace_with_retransmission=trace_with_retransmission)
+        was_successful, measurement_path, no_interent = utils.trace.trace_route(
+            ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
+            max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
+            request_packet_2=packet_2, name_prefix=name_prefix,
+            annotation_1=annotation_1, annotation_2=annotation_2,
+            continue_to_max_ttl=continue_to_max_ttl,
+            do_tcph1=do_tcph1, do_tcph2=do_tcph2,
+            trace_retransmission=trace_retransmission,
+            trace_with_retransmission=trace_with_retransmission)
+        if no_interent:
+            attach_jscss = True
     if args.get("ripe"):
         measurement_ids = ""
         if args.get("ripemids"):

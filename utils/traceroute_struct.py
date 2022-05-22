@@ -10,7 +10,8 @@ class traceroute_data:
         src_addr: str = "127.0.0.2", from_ip: str = "127.0.0.1",
         prb_id: int = -1, msm_id: int = -1, msm_name: str = "traceroute",
         ttr: float = -1, af: int = 4, lts: int = -1, paris_id: int = -1,
-        size: int = -1, dst_name: str = ""
+        size: int = -1, dst_name: str = "",
+        network_asn: str = "", network_name: str = "", country_code: str = ""
     ) -> None:
         self.af = af
         self.dst_addr = dst_addr
@@ -30,6 +31,9 @@ class traceroute_data:
         self.src_addr = src_addr
         self.timestamp = timestamp
         self.ttr = ttr
+        self.asn = network_asn
+        self.asname = network_name
+        self.cc = country_code
 
     def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary, answered, unanswered):
         if len(self.result) < hop:
@@ -40,14 +44,14 @@ class traceroute_data:
             })
         elif from_ip == "***":
             packetlist = utils.convert_packetlist.packetlist2json(
-                answered, unanswered)
+                answered, unanswered, self.from_ip)
             self.result[hop - 1]["result"].append({
                 "x": "*",
                 "packets": packetlist,
             })
         else:
             packetlist = utils.convert_packetlist.packetlist2json(
-                answered, unanswered)
+                answered, unanswered, self.from_ip)
             self.result[hop - 1]["result"].append({
                 "from": from_ip,
                 "rtt": rtt,
@@ -59,6 +63,10 @@ class traceroute_data:
 
     def set_endtime(self, endtime):
         self.endtime = endtime
+        if self.src_addr == self.from_ip:
+            self.src_addr = '127.1.2.7'
+        if self.from_ip != '127.1.2.7':
+            self.from_ip = '127.1.2.7'
 
     def clean_extra_result(self):
         result_index = 0
