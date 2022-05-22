@@ -552,7 +552,8 @@ def trace_route(
         measurement_name = name_prefix + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
     else:
-        measurement_name = network_asn + "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
+        measurement_name = network_asn + "tracevis-" + \
+            datetime.utcnow().strftime("%Y%m%d-%H%M")
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,

@@ -211,8 +211,10 @@ def main(args):
         name_prefix += "packet"
         try:
             if args.get('packet_input_method') == 'json':
-                input_packet = utils.packet_input.InputPacketInfo.from_json(OS_NAME, trace_retransmission,
-                                                                            packet_data=deepcopy(args.get('packet_data')))
+                input_packet = utils.packet_input.InputPacketInfo.from_json(
+                    OS_NAME, trace_retransmission, packet_data=deepcopy(
+                        args.get('packet_data'))
+                )
             elif args.get('packet_input_method') == 'interactive':
                 input_packet = utils.packet_input.InputPacketInfo.from_scapy(
                     OS_NAME, trace_retransmission)
