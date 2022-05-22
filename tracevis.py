@@ -115,7 +115,8 @@ def get_args():
                         help="same as 'new,rexmit' option (like Paris-Traceroute)")
     # this argument ('-o', '--options') will be changed or removed before v1.0.0
     parser.add_argument('-o', '--options', type=str, default="new",
-                        help="""change the behavior of the trace route 
+                        help=""" (this argument will be changed or removed before v1.0.0)
+change the behavior of the trace route 
 - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)
 - 'new' : to change source port, sequence number, etc in each request (default)
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
@@ -229,7 +230,7 @@ def main(args):
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
-        name_prefix += "-newrexmit"
+        name_prefix += "-paristr"
     if do_traceroute:
         if args.get("packet") or args.get("rexmit"):
             with input_packet as ctx:
