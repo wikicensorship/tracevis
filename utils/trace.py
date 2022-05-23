@@ -452,6 +452,34 @@ def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
     return request_packets_for_rexmit
 
 
+def get_meta():
+    no_interent = False
+    public_ip = '127.1.2.7'  # we should know that what we are going to clean
+    network_asn = 'AS0'
+    network_name = ''
+    country_code = ''
+    try:
+        print("· - · · · detecting IP, ASN, country, etc · - · · · ")
+        # TODO(xhdix): change versioning
+        request_headers = {'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'}
+        with requests.get('https://speed.cloudflare.com/meta', headers=request_headers, timeout=9) as meta_request:
+            if meta_request.status_code == 200:
+                user_meta = meta_request.json()
+                public_ip = user_meta['clientIp']
+                network_asn = "AS" + str(user_meta['asn'])
+                network_name = user_meta['asOrganization']
+                country_code = user_meta['country']
+                print("· · · - · " + public_ip)
+                print("· · · - · " + network_asn)
+                print("· · · - · " + network_name)
+                print("· · · - · " + country_code)
+        return no_interent, public_ip, network_asn, network_name, country_code
+    except Exception as e:
+        no_interent = True
+        print(f"Notice!\n{e!s}")
+        return no_interent, public_ip, network_asn, network_name, country_code
+
+
 def check_for_permission():
     try:
         this_request = IP(
@@ -481,11 +509,6 @@ def trace_route(
     global have_2_packet
     repeat_all_steps = 0
     paris_id = 0
-    no_interent = False
-    public_ip = '127.1.2.7'  # we use it to clean it in the result
-    network_asn = 'AS0'
-    network_name = ''
-    country_code = ''
     if do_tcph1:
         annotation_1 += " (+tcph)"
     if do_tcph2:
@@ -530,24 +553,7 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    try:
-        print("· - · · · detecting IP, ASN, country, etc · - · · · ")
-        # TODO(xhdix): change versioning
-        request_headers = {'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'}
-        with requests.get('https://speed.cloudflare.com/meta', headers=request_headers, timeout=9) as meta_request:
-            if meta_request.status_code == 200:
-                user_meta = meta_request.json()
-                public_ip = user_meta['clientIp']
-                network_asn = "AS" + str(user_meta['asn'])
-                network_name = user_meta['asOrganization']
-                country_code = user_meta['country']
-                print("· · · - · " + public_ip)
-                print("· · · - · " + network_asn)
-                print("· · · - · " + network_name)
-                print("· · · - · " + country_code)
-    except Exception as e:
-        no_interent = True
-        print(f"Notice!\n{e!s}")
+    no_interent, public_ip, network_asn, network_name, country_code = get_meta()
     if name_prefix != "":
         measurement_name = name_prefix + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
