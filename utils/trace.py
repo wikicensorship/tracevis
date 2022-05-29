@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import absolute_import, unicode_literals
 
-import contextlib
 import json
 import platform
-import socket
 import sys
 import time
 from copy import deepcopy
 from datetime import datetime
 from time import sleep
 
-import requests
 from scapy.all import Raw, conf, get_if_addr
 from scapy.layers.dns import DNS
 from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
 from scapy.volatile import RandInt, RandShort
 
+import utils.ephemeral_port
+import utils.geolocate
 from utils.traceroute_struct import traceroute_data
 
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
@@ -103,32 +102,6 @@ def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
     return "***", elapsed_ms, 0, 0, "*", answered, unanswered
 
 
-# ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
-
-
-def ephemeral_port_reserve(proto: str = "tcp"):
-    socketkind = socket.SOCK_STREAM
-    ipproto = socket.IPPROTO_TCP
-    if proto == "udp":
-        socketkind = socket.SOCK_DGRAM
-        ipproto = socket.IPPROTO_UDP
-    with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s:
-        s.bind((SOURCE_IP_ADDRESS, 0))
-        # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
-        if proto == "tcp":
-            s.listen(1)
-        sockname = s.getsockname()
-        # these three are necessary just to get the port into a TIME_WAIT state
-        with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s2:
-            s2.connect(sockname)
-            if proto == "tcp":
-                sock, _ = s.accept()
-                with contextlib.closing(sock):
-                    return sockname[1]
-            with contextlib.closing(s2):
-                return sockname[1]
-
-
 def tcp_options_correction(tcp_options, new_timestamp, syn_ack_timestamp):
     new_options = []
     default_timestamp = ('Timestamp', (new_timestamp, syn_ack_timestamp))
@@ -190,7 +163,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
     # we are trying to trace packet data, not SYN packet. And
     # we know about intermittent stream blocking
     while len(ans) == 0 and max_repeat < 5:
-        source_port = ephemeral_port_reserve("tcp")
+        source_port = utils.ephemeral_port.ephemeral_port_reserve("tcp")
         send_syn = IP(
             dst=ip_address, id=RandShort(), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=RandInt(),
@@ -245,7 +218,8 @@ def send_packet_with_tcphandshake(this_request, timeout):
 def send_single_packet(this_request, timeout):
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
-        this_request[TCP].sport = ephemeral_port_reserve("tcp")
+        this_request[TCP].sport = utils.ephemeral_port.ephemeral_port_reserve(
+            "tcp")
         if this_request[TCP].flags == "S":
             this_request[TCP].seq = RandInt()
         _, new_timestamp = get_new_timestamp()
@@ -253,11 +227,12 @@ def send_single_packet(this_request, timeout):
             this_request[TCP].options, new_timestamp, 0)
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
-        this_request[UDP].sport = ephemeral_port_reserve("udp")
+        this_request[UDP].sport = utils.ephemeral_port.ephemeral_port_reserve(
+            "udp")
         del(this_request[UDP].len)
         del(this_request[UDP].chksum)
     if this_request.haslayer(DNS):
-        this_request.id = RandShort()
+        this_request[DNS].id = RandShort()
     del(this_request[IP].len)
     del(this_request[IP].chksum)
     request_and_answers, unanswered = sr(
@@ -452,34 +427,6 @@ def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
     return request_packets_for_rexmit
 
 
-def get_meta():
-    no_interent = False
-    public_ip = '127.1.2.7'  # we should know that what we are going to clean
-    network_asn = 'AS0'
-    network_name = ''
-    country_code = ''
-    try:
-        print("· - · · · detecting IP, ASN, country, etc · - · · · ")
-        # TODO(xhdix): change versioning
-        request_headers = {'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'}
-        with requests.get('https://speed.cloudflare.com/meta', headers=request_headers, timeout=9) as meta_request:
-            if meta_request.status_code == 200:
-                user_meta = meta_request.json()
-                public_ip = user_meta['clientIp']
-                network_asn = "AS" + str(user_meta['asn'])
-                network_name = user_meta['asOrganization']
-                country_code = user_meta['country']
-                print("· · · - · " + public_ip)
-                print("· · · - · " + network_asn)
-                print("· · · - · " + network_name)
-                print("· · · - · " + country_code)
-        return no_interent, public_ip, network_asn, network_name, country_code
-    except Exception as e:
-        no_interent = True
-        print(f"Notice!\n{e!s}")
-        return no_interent, public_ip, network_asn, network_name, country_code
-
-
 def check_for_permission():
     try:
         this_request = IP(
@@ -553,7 +500,7 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_interent, public_ip, network_asn, network_name, country_code = get_meta()
+    no_interent, public_ip, network_asn, network_name, country_code = utils.geolocate.get_meta()
     if name_prefix != "":
         measurement_name = name_prefix + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
