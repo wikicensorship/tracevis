@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import platform
 
 import requests
 from scapy.layers.dns import DNS, DNSQR, DNSRR
@@ -10,9 +11,12 @@ from scapy.volatile import RandShort
 
 import utils.ephemeral_port
 
+OS_NAME = platform.system()
 
-# there is no timeout in getaddrinfo(), so we have to do it ourselves
+
 def nslookup():
+    # there is no timeout in getaddrinfo(), so we have to do it ourselves
+    # Raw packets bypasses the firewall so it may not work as intended in some cases
     dns_request = IP(
         dst="1.1.1.1", id=RandShort(), ttl=128)/UDP(
         sport=utils.ephemeral_port.ephemeral_port_reserve("udp"), dport=53)/DNS(
@@ -42,9 +46,10 @@ def get_meta():
             return no_interent, public_ip, network_asn, network_name, country_code
         # TODO(xhdix): change versioning
         request_headers = {'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'}
-        if os.geteuid() == 0:
-            usereuid = os.geteuid()
-            os.seteuid(65534)  # user id of the user "nobody"
+        if OS_NAME == "Linux":
+            if os.geteuid() == 0:
+                usereuid = os.geteuid()
+                os.seteuid(65534)  # user id of the user "nobody"
         with requests.get('https://speed.cloudflare.com/meta',
                           headers=request_headers, timeout=9) as meta_request:
             if meta_request.status_code == 200:
