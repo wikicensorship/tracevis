@@ -317,7 +317,7 @@ def initialize_first_nodes_json(request_ips):
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
         packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id,
-        public_ip, network_asn, network_name, country_code):
+        public_ip, network_asn, network_name, country_code, city):
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
@@ -327,7 +327,7 @@ def initialize_json_first_nodes(
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
                 timestamp=start_time, paris_id=paris_id, size=packet_1_size,
                 from_ip=public_ip, network_asn=network_asn,
-                network_name=network_name, country_code=country_code
+                network_name=network_name, country_code=country_code, city=city
             )
         )
         if have_2_packet:
@@ -337,7 +337,7 @@ def initialize_json_first_nodes(
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
                     timestamp=start_time, paris_id=paris_id, size=packet_2_size,
                     from_ip=public_ip, network_asn=network_asn,
-                    network_name=network_name, country_code=country_code
+                    network_name=network_name, country_code=country_code, city=city
                 )
             )
 
@@ -500,7 +500,7 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_interent, public_ip, network_asn, network_name, country_code = utils.geolocate.get_meta()
+    no_interent, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta()
     if name_prefix != "":
         measurement_name = name_prefix + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -513,7 +513,7 @@ def trace_route(
         packet_1_port=p1_port, packet_2_port=p2_port,
         packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id,
         public_ip=public_ip, network_asn=network_asn, network_name=network_name,
-        country_code=country_code
+        country_code=country_code, city=city
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:

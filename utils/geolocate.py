@@ -39,6 +39,7 @@ def get_meta():
     network_asn = 'AS0'
     network_name = ''
     country_code = ''
+    city = ''
     usereuid = None
     try:
         print("· - · · · detecting IP, ASN, country, etc · - · · · ")
@@ -54,20 +55,28 @@ def get_meta():
                           headers=request_headers, timeout=9) as meta_request:
             if meta_request.status_code == 200:
                 user_meta = meta_request.json()
-                public_ip = user_meta['clientIp']
-                network_asn = "AS" + str(user_meta['asn'])
-                network_name = user_meta['asOrganization']
-                country_code = user_meta['country']
-                print("· · · - · " + public_ip)
-                print("· · · - · " + network_asn)
-                print("· · · - · " + network_name)
-                print("· · · - · " + country_code)
+                if 'clientIp' in user_meta.keys():
+                    public_ip = user_meta['clientIp']
+                    print("· · · - · " + public_ip)
+                    print('. - . - . we use public IP to know what to remove from data!')
+                if 'asn' in user_meta.keys():
+                    network_asn = "AS" + str(user_meta['asn'])
+                    print("· · · - · " + network_asn)
+                if 'asOrganization' in user_meta.keys():
+                    network_name = user_meta['asOrganization']
+                    print("· · · - · " + network_name)
+                if 'country' in user_meta.keys():
+                    country_code = user_meta['country']
+                    print("· · · - · " + country_code)
+                if 'city' in user_meta.keys():
+                    city = user_meta['city']
+                    print("· · · - · " + city)
         if usereuid != None:
             os.seteuid(usereuid)
-        return no_interent, public_ip, network_asn, network_name, country_code
+        return no_interent, public_ip, network_asn, network_name, country_code, city
     except Exception as e:
         no_interent = True
         print(f"Notice!\n{e!s}")
         if usereuid != None:
             os.seteuid(usereuid)
-        return no_interent, public_ip, network_asn, network_name, country_code
+        return no_interent, public_ip, network_asn, network_name, country_code, city

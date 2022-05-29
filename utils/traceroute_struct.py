@@ -11,7 +11,8 @@ class traceroute_data:
         prb_id: int = -1, msm_id: int = -1, msm_name: str = "traceroute",
         ttr: float = -1, af: int = 4, lts: int = -1, paris_id: int = -1,
         size: int = -1, dst_name: str = "",
-        network_asn: str = "", network_name: str = "", country_code: str = ""
+        network_asn: str = "", network_name: str = "", country_code: str = "",
+        city: str = ''
     ) -> None:
         self.af = af
         self.dst_addr = dst_addr
@@ -34,6 +35,7 @@ class traceroute_data:
         self.asn = network_asn
         self.asname = network_name
         self.cc = country_code
+        self.city = city
 
     def add_hop(self, hop, from_ip, rtt, size, ttl, answer_summary, answered, unanswered):
         if len(self.result) < hop:
