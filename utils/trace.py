@@ -502,10 +502,10 @@ def trace_route(
         paris_id = -1
     no_interent, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta()
     if name_prefix != "":
-        measurement_name = name_prefix + network_asn + "-tracevis-" + \
+        measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
     else:
-        measurement_name = network_asn + "tracevis-" + \
+        measurement_name = network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,

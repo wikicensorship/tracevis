@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+import json
 import os
 import platform
+from urllib.request import Request, urlopen
 
-import requests
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.inet import IP, UDP
 from scapy.sendrecv import sr
@@ -33,50 +34,58 @@ def nslookup():
     return False
 
 
+def get_meta_json():
+    usereuid = None
+    meta_url = 'https://speed.cloudflare.com/meta'
+    # TODO(xhdix): change versioning
+    httprequest = Request(
+        meta_url, headers={'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'})
+    try:
+        if OS_NAME == "Linux":
+            if os.geteuid() == 0:
+                usereuid = os.geteuid()
+                os.seteuid(65534)  # user id of the user "nobody"
+        with urlopen(httprequest, timeout=9) as response:
+            if response.status == 200:
+                meta_json = json.load(response)
+                return meta_json
+            else:
+                return None
+    except Exception as e:
+        print(f"Notice!\n{e!s}")
+        return None
+    finally:
+        if usereuid != None:
+            os.seteuid(usereuid)
+
+
 def get_meta():
-    no_interent = False
+    no_interent = True
     public_ip = '127.1.2.7'  # we should know that what we are going to clean
     network_asn = 'AS0'
     network_name = ''
     country_code = ''
     city = ''
-    usereuid = None
-    try:
-        print("· - · · · detecting IP, ASN, country, etc · - · · · ")
-        if not nslookup():
-            return no_interent, public_ip, network_asn, network_name, country_code
-        # TODO(xhdix): change versioning
-        request_headers = {'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'}
-        if OS_NAME == "Linux":
-            if os.geteuid() == 0:
-                usereuid = os.geteuid()
-                os.seteuid(65534)  # user id of the user "nobody"
-        with requests.get('https://speed.cloudflare.com/meta',
-                          headers=request_headers, timeout=9) as meta_request:
-            if meta_request.status_code == 200:
-                user_meta = meta_request.json()
-                if 'clientIp' in user_meta.keys():
-                    public_ip = user_meta['clientIp']
-                    print("· · · - · " + public_ip)
-                    print('. - . - . we use public IP to know what to remove from data!')
-                if 'asn' in user_meta.keys():
-                    network_asn = "AS" + str(user_meta['asn'])
-                    print("· · · - · " + network_asn)
-                if 'asOrganization' in user_meta.keys():
-                    network_name = user_meta['asOrganization']
-                    print("· · · - · " + network_name)
-                if 'country' in user_meta.keys():
-                    country_code = user_meta['country']
-                    print("· · · - · " + country_code)
-                if 'city' in user_meta.keys():
-                    city = user_meta['city']
-                    print("· · · - · " + city)
-        if usereuid != None:
-            os.seteuid(usereuid)
-        return no_interent, public_ip, network_asn, network_name, country_code, city
-    except Exception as e:
-        no_interent = True
-        print(f"Notice!\n{e!s}")
-        if usereuid != None:
-            os.seteuid(usereuid)
-        return no_interent, public_ip, network_asn, network_name, country_code, city
+    print("· - · · · detecting IP, ASN, country, etc · - · · · ")
+    if not nslookup():
+        return no_interent, public_ip, network_asn, network_name, country_code
+    user_meta = get_meta_json()
+    if user_meta is not None:
+        no_interent = False
+        if 'clientIp' in user_meta.keys():
+            public_ip = user_meta['clientIp']
+            print("· · · - · " + public_ip)
+            print('. - . - . we use public IP to know what to remove from data!')
+        if 'asn' in user_meta.keys():
+            network_asn = "AS" + str(user_meta['asn'])
+            print("· · · - · " + network_asn)
+        if 'asOrganization' in user_meta.keys():
+            network_name = user_meta['asOrganization']
+            print("· · · - · " + network_name)
+        if 'country' in user_meta.keys():
+            country_code = user_meta['country']
+            print("· · · - · " + country_code)
+        if 'city' in user_meta.keys():
+            city = user_meta['city']
+            print("· · · - · " + city)
+    return no_interent, public_ip, network_asn, network_name, country_code, city
