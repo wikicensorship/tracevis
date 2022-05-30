@@ -500,7 +500,7 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_interent, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta()
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta()
     if name_prefix != "":
         measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -602,6 +602,6 @@ def trace_route(
         data_path = save_measurement_data(
             request_ips, measurement_name, continue_to_max_ttl, output_dir)
         print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
-        return(was_successful, data_path, no_interent)
+        return(was_successful, data_path, no_internet)
     else:
-        return(was_successful, "", no_interent)
+        return(was_successful, "", no_internet)

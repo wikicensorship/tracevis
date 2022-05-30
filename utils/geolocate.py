@@ -60,7 +60,7 @@ def get_meta_json():
 
 
 def get_meta():
-    no_interent = True
+    no_internet = True
     public_ip = '127.1.2.7'  # we should know that what we are going to clean
     network_asn = 'AS0'
     network_name = ''
@@ -68,10 +68,10 @@ def get_meta():
     city = ''
     print("· - · · · detecting IP, ASN, country, etc · - · · · ")
     if not nslookup():
-        return no_interent, public_ip, network_asn, network_name, country_code
+        return no_internet, public_ip, network_asn, network_name, country_code
     user_meta = get_meta_json()
     if user_meta is not None:
-        no_interent = False
+        no_internet = False
         if 'clientIp' in user_meta.keys():
             public_ip = user_meta['clientIp']
             print("· · · - · " + public_ip)
@@ -88,4 +88,4 @@ def get_meta():
         if 'city' in user_meta.keys():
             city = user_meta['city']
             print("· · · - · " + city)
-    return no_interent, public_ip, network_asn, network_name, country_code, city
+    return no_internet, public_ip, network_asn, network_name, country_code, city

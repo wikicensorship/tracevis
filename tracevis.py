@@ -237,7 +237,7 @@ def main(args):
         if args.get("packet") or args.get("rexmit"):
             with input_packet as ctx:
                 packet_1, packet_2, do_tcph1, do_tcph2 = ctx
-        was_successful, measurement_path, no_interent = utils.trace.trace_route(
+        was_successful, measurement_path, no_internet = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
             max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
             request_packet_2=packet_2, name_prefix=name_prefix,
@@ -246,7 +246,7 @@ def main(args):
             do_tcph1=do_tcph1, do_tcph2=do_tcph2,
             trace_retransmission=trace_retransmission,
             trace_with_retransmission=trace_with_retransmission)
-        if no_interent:
+        if no_internet:
             attach_jscss = True
     if args.get("ripe"):
         measurement_ids = ""
