@@ -68,7 +68,7 @@ def get_meta():
     city = ''
     print("· - · · · detecting IP, ASN, country, etc · - · · · ")
     if not nslookup():
-        return no_internet, public_ip, network_asn, network_name, country_code
+        return no_internet, public_ip, network_asn, network_name, country_code, city
     user_meta = get_meta_json()
     if user_meta is not None:
         no_internet = False
