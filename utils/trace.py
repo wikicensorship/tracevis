@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import absolute_import, unicode_literals
 
-import contextlib
 import json
 import platform
-import socket
 import sys
 import time
 from copy import deepcopy
@@ -17,6 +15,8 @@ from scapy.layers.inet import ICMP, IP, TCP, UDP
 from scapy.sendrecv import send, sr, sr1
 from scapy.volatile import RandInt, RandShort
 
+import utils.ephemeral_port
+import utils.geolocate
 from utils.traceroute_struct import traceroute_data
 
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
@@ -102,32 +102,6 @@ def parse_packet(answered, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
     return "***", elapsed_ms, 0, 0, "*", answered, unanswered
 
 
-# ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
-
-
-def ephemeral_port_reserve(proto: str = "tcp"):
-    socketkind = socket.SOCK_STREAM
-    ipproto = socket.IPPROTO_TCP
-    if proto == "udp":
-        socketkind = socket.SOCK_DGRAM
-        ipproto = socket.IPPROTO_UDP
-    with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s:
-        s.bind((SOURCE_IP_ADDRESS, 0))
-        # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
-        if proto == "tcp":
-            s.listen(1)
-        sockname = s.getsockname()
-        # these three are necessary just to get the port into a TIME_WAIT state
-        with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s2:
-            s2.connect(sockname)
-            if proto == "tcp":
-                sock, _ = s.accept()
-                with contextlib.closing(sock):
-                    return sockname[1]
-            with contextlib.closing(s2):
-                return sockname[1]
-
-
 def tcp_options_correction(tcp_options, new_timestamp, syn_ack_timestamp):
     new_options = []
     default_timestamp = ('Timestamp', (new_timestamp, syn_ack_timestamp))
@@ -189,7 +163,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
     # we are trying to trace packet data, not SYN packet. And
     # we know about intermittent stream blocking
     while len(ans) == 0 and max_repeat < 5:
-        source_port = ephemeral_port_reserve("tcp")
+        source_port = utils.ephemeral_port.ephemeral_port_reserve("tcp")
         send_syn = IP(
             dst=ip_address, id=RandShort(), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=RandInt(),
@@ -244,7 +218,8 @@ def send_packet_with_tcphandshake(this_request, timeout):
 def send_single_packet(this_request, timeout):
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
-        this_request[TCP].sport = ephemeral_port_reserve("tcp")
+        this_request[TCP].sport = utils.ephemeral_port.ephemeral_port_reserve(
+            "tcp")
         if this_request[TCP].flags == "S":
             this_request[TCP].seq = RandInt()
         _, new_timestamp = get_new_timestamp()
@@ -252,11 +227,12 @@ def send_single_packet(this_request, timeout):
             this_request[TCP].options, new_timestamp, 0)
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
-        this_request[UDP].sport = ephemeral_port_reserve("udp")
+        this_request[UDP].sport = utils.ephemeral_port.ephemeral_port_reserve(
+            "udp")
         del(this_request[UDP].len)
         del(this_request[UDP].chksum)
     if this_request.haslayer(DNS):
-        this_request.id = RandShort()
+        this_request[DNS].id = RandShort()
     del(this_request[IP].len)
     del(this_request[IP].chksum)
     request_and_answers, unanswered = sr(
@@ -340,8 +316,8 @@ def initialize_first_nodes_json(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
-        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id):
-    # source_address = get_if_addr(conf.iface) #todo: xhdix
+        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id,
+        public_ip, network_asn, network_name, country_code, city):
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
@@ -349,7 +325,9 @@ def initialize_json_first_nodes(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
-                timestamp=start_time, paris_id=paris_id, size=packet_1_size
+                timestamp=start_time, paris_id=paris_id, size=packet_1_size,
+                from_ip=public_ip, network_asn=network_asn,
+                network_name=network_name, country_code=country_code, city=city
             )
         )
         if have_2_packet:
@@ -357,7 +335,9 @@ def initialize_json_first_nodes(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
-                    timestamp=start_time, paris_id=paris_id, size=packet_2_size
+                    timestamp=start_time, paris_id=paris_id, size=packet_2_size,
+                    from_ip=public_ip, network_asn=network_asn,
+                    network_name=network_name, country_code=country_code, city=city
                 )
             )
 
@@ -474,6 +454,8 @@ def trace_route(
     request_ips = []
     was_successful = False
     global have_2_packet
+    repeat_all_steps = 0
+    paris_id = 0
     if do_tcph1:
         annotation_1 += " (+tcph)"
     if do_tcph2:
@@ -512,24 +494,26 @@ def trace_route(
                 request_ips.append(request_packet_2[IP].dst)
     else:
         request_ips = ip_list
-    if name_prefix != "":
-        measurement_name = name_prefix + "-tracevis-" + \
-            datetime.utcnow().strftime("%Y%m%d-%H%M")
-    else:
-        measurement_name = "tracevis-" + datetime.utcnow().strftime("%Y%m%d-%H%M")
-    repeat_all_steps = 0
     p1_proto, p2_proto, p1_port, p2_port, p1_size, p2_size = get_packets_info(
         request_packets)
-    paris_id = 0
     if trace_with_retransmission:
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta()
+    if name_prefix != "":
+        measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
+            datetime.utcnow().strftime("%Y%m%d-%H%M")
+    else:
+        measurement_name = network_asn + "-tracevis-" + \
+            datetime.utcnow().strftime("%Y%m%d-%H%M")
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,
         packet_1_port=p1_port, packet_2_port=p2_port,
-        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id
+        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id,
+        public_ip=public_ip, network_asn=network_asn, network_name=network_name,
+        country_code=country_code, city=city
     )
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
@@ -618,6 +602,6 @@ def trace_route(
         data_path = save_measurement_data(
             request_ips, measurement_name, continue_to_max_ttl, output_dir)
         print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
-        return(was_successful, data_path)
+        return(was_successful, data_path, no_internet)
     else:
-        return(was_successful, "")
+        return(was_successful, "", no_internet)

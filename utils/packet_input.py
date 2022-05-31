@@ -126,6 +126,7 @@ class InputPacketInfo:
         if not cls._supported_or_correct(p1):
             raise BADPacketException(
                 "it's not IPv4 or the hexdump is not started with IP layer")
+        p1[IP].src = '127.1.2.7'
         if show:
             print(" . . . - . developed view of this packet:")
             p1.show()
