@@ -23,6 +23,7 @@ SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
+user_iface=None
 measurement_data = [[], []]
 OS_NAME = platform.system()
 
@@ -153,6 +154,7 @@ def get_new_timestamp():
 
 
 def send_packet_with_tcphandshake(this_request, timeout):
+    global user_iface
     timestamp_start, new_timestamp = get_new_timestamp()
     ip_address = this_request[IP].dst
     destination_port = this_request[TCP].dport
@@ -169,7 +171,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
             sport=source_port, dport=destination_port, seq=RandInt(),
             flags="S", options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
-        ans, unans = sr(send_syn, verbose=0, timeout=tcp_handshake_timeout)
+        ans, unans = sr(send_syn, iface=user_iface, verbose=0, timeout=tcp_handshake_timeout)
         if len(ans) == 0:
             print("Warning: No response to SYN packet yet")
         max_repeat += 1
@@ -190,7 +192,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
             dst=ip_address, id=(ans[0][0][IP].id + 1), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
             ack=ans[0][1][TCP].seq + 1, flags="A", options=ack_tcp_options)
-        send(send_ack, verbose=0)
+        send(send_ack, iface=user_iface, verbose=0)
         send_data = this_request
         del(send_data[IP].src)
         send_data[IP].id = ans[0][0][IP].id + 2
@@ -203,7 +205,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
         del(send_data[IP].len)
         del(send_data[IP].chksum)
         request_and_answers, unanswered = sr(
-            send_data, verbose=0, timeout=timeout, multi=True)
+            send_data, iface=user_iface, verbose=0, timeout=timeout, multi=True)
         # send_fin = send_ack.copy() # todo: xhdix
         # send_fin[IP].id=ans[0][0][IP].id + 1
         # send_fin[TCP].flags = "FA"
@@ -216,6 +218,7 @@ def send_packet_with_tcphandshake(this_request, timeout):
 
 
 def send_single_packet(this_request, timeout):
+    global user_iface
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
         this_request[TCP].sport = utils.ephemeral_port.ephemeral_port_reserve(
@@ -236,19 +239,20 @@ def send_single_packet(this_request, timeout):
     del(this_request[IP].len)
     del(this_request[IP].chksum)
     request_and_answers, unanswered = sr(
-        this_request, verbose=0, timeout=timeout)
+        this_request, iface=user_iface, verbose=0, timeout=timeout)
     return request_and_answers, unanswered
 
 
 def retransmission_single_packet(this_request, timeout, is_data_packet):
+    global user_iface
     this_request[IP].id += 1
     del(this_request[IP].chksum)
     if is_data_packet:
         request_and_answers, unanswered = sr(
-            this_request, verbose=0, timeout=timeout, multi=True)
+            this_request, iface=user_iface, verbose=0, timeout=timeout, multi=True)
     else:
         request_and_answers, unanswered = sr(
-            this_request, verbose=0, timeout=timeout)
+            this_request, iface=user_iface, verbose=0, timeout=timeout)
     return request_and_answers, unanswered
 
 
@@ -428,11 +432,12 @@ def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
 
 
 def check_for_permission():
+    global user_iface
     try:
         this_request = IP(
             dst=LOCALHOST, ttl=0)/TCP(
             sport=0, dport=53)/DNS()
-        sr1(this_request, verbose=0, timeout=0)
+        sr1(this_request, iface=user_iface, verbose=0, timeout=0)
     except OSError:
         print("Error: Unable to send a packet with unprivileged user. Please run as root/admin.")
         sys.exit(1)
@@ -445,8 +450,11 @@ def trace_route(
         annotation_1: str = "", annotation_2: str = "",
         continue_to_max_ttl: bool = False,
         do_tcph1: bool = False, do_tcph2: bool = False,
-        trace_retransmission: bool = False, trace_with_retransmission: bool = False
+        trace_retransmission: bool = False,
+        trace_with_retransmission: bool = False, iface=None
 ):
+    global user_iface
+    user_iface=iface
     check_for_permission()
     measurement_name = ""
     request_packets = []
@@ -500,7 +508,7 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta()
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(user_iface)
     if name_prefix != "":
         measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")

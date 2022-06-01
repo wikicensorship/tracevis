@@ -15,7 +15,7 @@ import utils.ephemeral_port
 OS_NAME = platform.system()
 
 
-def nslookup():
+def nslookup(user_iface=None):
     # there is no timeout in getaddrinfo(), so we have to do it ourselves
     # Raw packets bypasses the firewall so it may not work as intended in some cases
     dns_request = IP(
@@ -24,7 +24,7 @@ def nslookup():
             rd=1, id=RandShort(), qd=DNSQR(qname="speed.cloudflare.com"))
     try:
         request_and_answers, _ = sr(
-            dns_request, verbose=0, timeout=1)
+            dns_request, iface=user_iface, verbose=0, timeout=1)
     except:
         return False
     if request_and_answers is not None and len(request_and_answers) != 0:
@@ -59,7 +59,7 @@ def get_meta_json():
             os.seteuid(usereuid)
 
 
-def get_meta():
+def get_meta(user_iface=None):
     no_internet = True
     public_ip = '127.1.2.7'  # we should know that what we are going to clean
     network_asn = 'AS0'
@@ -67,7 +67,7 @@ def get_meta():
     country_code = ''
     city = ''
     print("· - · · · detecting IP, ASN, country, etc · - · · · ")
-    if not nslookup():
+    if not nslookup(user_iface):
         return no_internet, public_ip, network_asn, network_name, country_code, city
     user_meta = get_meta_json()
     if user_meta is not None:
