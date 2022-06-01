@@ -128,7 +128,7 @@ change the behavior of the trace route
                         )
     parser.add_argument('--iface', type=str,
                         help="set the target network interface")
-    parser.add_argument('--show-interfaces', action='store_true',
+    parser.add_argument('--show-ifaces', action='store_true',
                         help="show the network interfaces (conf.route)")
     if len(sys.argv) == 1:
         parser.print_help()
@@ -217,7 +217,7 @@ def main(args):
             exit()
         else:
             iface = args["iface"]
-    if args.get("show_interfaces"):
+    if args.get("show_ifaces"):
         show_conf_route()
         exit()
     if args.get("dns") or args.get("dnstcp"):
