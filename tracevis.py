@@ -56,7 +56,7 @@ def process_input_args(args, parser):
     return args_dict
 
 
-def get_args():
+def get_args(sys_args, auto_exit=True):
     parser = argparse.ArgumentParser(
         description='Traceroute with any packet. \
             Visualize the routes. Discover Middleboxes and Firewalls', formatter_class=argparse.RawTextHelpFormatter)
@@ -121,10 +121,10 @@ change the behavior of the trace route
 - 'new' : to change source port, sequence number, etc in each request (default)
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
-    if len(sys.argv) == 1:
+    if len(sys_args) == 0 and auto_exit:
         parser.print_help()
         sys.exit(1)
-    args = parser.parse_args()
+    args = parser.parse_args(sys_args)
     args_dict = process_input_args(args, parser)
     return args_dict
 
@@ -280,4 +280,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    main(get_args())
+    main(get_args(sys.argv[1:]))
