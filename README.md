@@ -73,13 +73,14 @@ docker run -it ghcr.io/wikicensorship/tracevis --packet
 ```sh
 python3 ./tracevis.py --config ./samples/quicv0xbabababa.conf
 ```
-_(There is more in `./samples`: Client-Hello, NTP, SYN, and more QUIC packets)_
 
 or you can override:
 
 ```
 python3 ./tracevis.py --config ./samples/syn.conf -i "75.2.60.5,99.83.231.61"
 ```
+
+_(There is more in `./samples`: Client-Hello, NTP, HTTP-GET, and more QUIC packets)_
 
 ##### Download traceroute data from a RIPE Atlas probe:
 
