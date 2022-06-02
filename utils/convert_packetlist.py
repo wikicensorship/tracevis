@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from base64 import b64encode
+from dataclasses import replace
 
 
 # this function source: https://stackoverflow.com/a/64410921
@@ -13,8 +14,7 @@ def packet2json(packet_obj, public_ip):
             packet_dict[layer] = {}
         elif '=' in line:
             key, val = line.split('=', 1)
-            if val == public_ip:
-                val = '127.1.2.7'
+            val = val.replace(public_ip, '127.1.2.7')
             if layer == 'Raw' and key.strip() == 'load':
                 packet_dict[layer][key.strip()] = b64encode(
                     packet_obj['Raw'].load).decode()
