@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from base64 import b64encode
-from dataclasses import replace
 
 
 # this function source: https://stackoverflow.com/a/64410921
