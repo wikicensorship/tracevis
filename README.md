@@ -16,6 +16,7 @@ You need to install [npcap](https://npcap.com/) in **Windows**. If you already h
 
 (**Not** required on **Linux**.)
 
+### Using ducker:
 ##### Pull docker image from github container registry:
 
 ```sh
@@ -28,7 +29,8 @@ docker pull ghcr.io/wikicensorship/tracevis
 docker build -t tracevis .
 ```
 
-##### Or clone project and install Python dependencies:
+### Directly:
+##### Download or clone project and then install Python dependencies:
 
 ```sh
 python3 -m pip install -r requirements.txt
@@ -48,6 +50,12 @@ or with docker image:
 docker run ghcr.io/wikicensorship/tracevis --dns
 ```
 
+or trace in paris mode:
+
+```sh
+python3 ./tracevis.py --dns --paris
+```
+
 ##### Packet trace:
 
 ```sh
@@ -58,6 +66,19 @@ or with docker image:
 
 ```sh
 docker run -it ghcr.io/wikicensorship/tracevis --packet
+```
+
+##### trace with a config file:
+
+```sh
+python3 ./tracevis.py --config ./samples/quicv0xbabababa.conf
+```
+_(There is more in `./samples`: Client-Hello, NTP, SYN, and more QUIC packets)_
+
+or you can override:
+
+```
+python3 ./tracevis.py --config ./samples/syn.conf -i "75.2.60.5,99.83.231.61"
 ```
 
 ##### Download traceroute data from a RIPE Atlas probe:
