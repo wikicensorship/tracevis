@@ -2,8 +2,12 @@
 from __future__ import absolute_import, unicode_literals
 
 import argparse
-import os, sys
+import json
+import os
 import platform
+import sys
+import textwrap
+from copy import deepcopy
 
 import utils.csv
 import utils.dns
@@ -11,7 +15,6 @@ import utils.packet_input
 import utils.ripe_atlas
 import utils.trace
 import utils.vis
-
 import textwrap
 import logging
 
@@ -28,15 +31,42 @@ DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
 
 
-def dump_non_default_args_to_file(file, args, packet_info):
+def show_conf_route():
+    from scapy.all import conf
+    print(conf.route)
+
+
+def dump_args_to_file(file, args, packet_info):
     args_without_config_arg = args.copy()
     if 'config_file' in args_without_config_arg:
         del args_without_config_arg['config_file']
     if packet_info:
         args_without_config_arg['packet_data'] = packet_info.as_dict()
         args_without_config_arg['packet_input_method'] = 'json'
-    with open(file,'w') as f:
+    with open(file, 'w') as f:
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
+
+
+def process_input_args(args, parser):
+    cli_args_dict = vars(args)
+    passed_args = {
+        opt.dest
+        for opt in parser._option_string_actions.values()
+        if hasattr(args, opt.dest) and opt.default != getattr(args, opt.dest)
+    }
+    args_dict = cli_args_dict.copy()
+    if args.config_file:
+        with open(args.config_file) as f:
+            args_dict.update(json.load(f))
+    for k in passed_args:
+        args_dict[k] = cli_args_dict.get(k)
+    if 'dns' in passed_args:
+        args_dict['packet'] = False
+        args_dict['packet_input_method'] = None
+    if 'packet' in passed_args:
+        args_dict['dns'] = False
+    return args_dict
+
 
 def get_args():
     global logger
@@ -51,12 +81,13 @@ def get_args():
                         help="add comma-separated IPs (up to 6 for two packet and up to 12 for one packet)")
     parser.add_argument('-p', '--packet', action='store_true',
                         help="receive one or two packets from the IP layer via the terminal input and trace route with")
-    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['json','hex','interactive'], default="hex",
+    parser.add_argument('--packet-input-method', dest='packet_input_method', choices=['json', 'hex', 'interactive'], default="hex",
                         help=textwrap.dedent("""Select packet input method 
 - json: load packet data from a json/file(set via --packet-data)
 - hex: paste hex dump of packet into interactive shell 
 - interactive: use full featured scapy and python console to craft packet\n\n"""))
-    parser.add_argument("--packet-data", dest='packet_data', type=str, help="Packet json data if input method is 'json' (use @file to load from file)", default=None)
+    parser.add_argument("--packet-data", dest='packet_data', type=str,
+                        help="Packet json data if input method is 'json' (use @file to load from file)", default=None)
     parser.add_argument('--dns', action='store_true',
                         help="trace route with a simple DNS over UDP packet")
     parser.add_argument('--dnstcp', action='store_true',
@@ -97,31 +128,27 @@ def get_args():
                         help="same as 'new,rexmit' option (like Paris-Traceroute)")
     # this argument ('-o', '--options') will be changed or removed before v1.0.0
     parser.add_argument('-o', '--options', type=str, default="new",
-                        help="""change the behavior of the trace route 
+                        help=""" (this argument will be changed or removed before v1.0.0)
+change the behavior of the trace route 
 - 'rexmit' : to be similar to doing retransmission with incremental TTL (only one packet, one destination)
 - 'new' : to change source port, sequence number, etc in each request (default)
-- 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit""")
-    parser.add_argument('--verbose', '-v', action='count', default=0, help='Set log level: -v for WARNING, -vv for INFO, -vvv for DEBUG')
-    
+- 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
+                        )
+    parser.add_argument('--verbose', '-v', action='count', default=0,
+                        help='Set log level: -v for WARNING, -vv for INFO, -vvv for DEBUG')
+    parser.add_argument('--iface', type=str,
+                        help="set the target network interface")
+    parser.add_argument('--show-ifaces', action='store_true',
+                        help="show the network interfaces (conf.route)")
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
-
     args = parser.parse_args()
-
     args.verbose = 40 - (10*args.verbose) if 0 <= args.verbose <= 3 else 40 
-
     logging.basicConfig(level=args.verbose, format='%(message)s')
     logger = logging.getLogger(__name__)
-
-    if args.config_file:
-        with open(args.config_file) as f:
-            return json.load(f)
-    
-    if args.packet_input_method == 'file' and args.packet_file is None:
-        parser.error("--packet-input-method requires --packet-file.")
-
-    return vars(args)
+    args_dict = process_input_args(args, parser)
+    return args_dict
 
 
 def main(args):
@@ -131,8 +158,7 @@ def main(args):
                 args['packet_data'] = json.load(f)
         else:
             args['packet_data'] = json.loads(args.get('packet_data'))
-
-    input_packet = None 
+    input_packet = None
     name_prefix = ""
     continue_to_max_ttl = False
     max_ttl = MAX_TTL
@@ -154,6 +180,7 @@ def main(args):
     edge_lable = "backttl"
     trace_retransmission = False
     trace_with_retransmission = False
+    iface = None
     output_dir = os.getenv('TRACEVIS_OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -186,14 +213,26 @@ def main(args):
     if args.get("paris"):
         trace_with_retransmission = True
     if args.get("options"):
-        # this argument will be changed or removed before v1.0.0
         trace_options = args["options"].replace(' ', '').split(',')
         if "new" in trace_options and "rexmit" in trace_options:
+            print("Notice: this argument will be changed or removed before v1.0.0")
+            print("use --paris intead")
             trace_with_retransmission = True
         elif "rexmit" in trace_options:
+            print("Notice: this argument will be changed or removed before v1.0.0")
+            print("use --rexmit intead")
             trace_retransmission = True
         else:
             pass  # "new" is default
+    if args.get("iface"):
+        if args["iface"] == "":
+            show_conf_route()
+            exit()
+        else:
+            iface = args["iface"]
+    if args.get("show_ifaces"):
+        show_conf_route()
+        exit()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix += "dns"
@@ -206,14 +245,17 @@ def main(args):
         do_traceroute = True
         name_prefix += "packet"
         try:
-            
             if args.get('packet_input_method') == 'json':
-                input_packet = utils.packet_input.InputPacketInfo.from_json(OS_NAME, trace_retransmission, 
-                                                                            packet_data=deepcopy(args.get('packet_data')))
+                input_packet = utils.packet_input.InputPacketInfo.from_json(
+                    OS_NAME, trace_retransmission, packet_data=deepcopy(
+                        args.get('packet_data'))
+                )
             elif args.get('packet_input_method') == 'interactive':
-                input_packet = utils.packet_input.InputPacketInfo.from_scapy(OS_NAME, trace_retransmission)
+                input_packet = utils.packet_input.InputPacketInfo.from_scapy(
+                    OS_NAME, trace_retransmission)
             elif args.get('packet_input_method') == 'hex':
-                input_packet = utils.packet_input.InputPacketInfo.from_stdin(OS_NAME, trace_retransmission)
+                input_packet = utils.packet_input.InputPacketInfo.from_stdin(
+                    OS_NAME, trace_retransmission)
             else:
                 raise RuntimeError("Bad input type")
         except (utils.packet_input.BADPacketException, utils.packet_input.FirewallException) as e:
@@ -222,16 +264,15 @@ def main(args):
         except Exception as e:
             logger.error(f"Error!\n{e!s}")
             exit(2)
-
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
-        name_prefix += "-newrexmit"
+        name_prefix += "-paristr"
     if do_traceroute:
         if args.get("packet") or args.get("rexmit"):
             with input_packet as ctx:
                 packet_1, packet_2, do_tcph1, do_tcph2 = ctx
-        was_successful, measurement_path = utils.trace.trace_route(
+        was_successful, measurement_path, no_internet = utils.trace.trace_route(
             ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
             max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
             request_packet_2=packet_2, name_prefix=name_prefix,
@@ -239,7 +280,9 @@ def main(args):
             continue_to_max_ttl=continue_to_max_ttl,
             do_tcph1=do_tcph1, do_tcph2=do_tcph2,
             trace_retransmission=trace_retransmission,
-            trace_with_retransmission=trace_with_retransmission)
+            trace_with_retransmission=trace_with_retransmission, iface=iface)
+        if no_internet:
+            attach_jscss = True
     if args.get("ripe"):
         measurement_ids = ""
         if args.get("ripemids"):
@@ -258,8 +301,7 @@ def main(args):
             was_successful = True
     if was_successful:
         config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
-        dump_non_default_args_to_file(config_dump_file_name, args, input_packet)
-        
+        dump_args_to_file(config_dump_file_name, args, input_packet)
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
                 edge_lable=edge_lable):

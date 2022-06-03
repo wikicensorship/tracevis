@@ -7,7 +7,6 @@ from time import sleep
 import logging 
 logger = logging.getLogger(__name__)
 
-
 MEASUREMENT_IDS = [
     5011,  # c.root-servers.net
     5013,  # e.root-servers.net

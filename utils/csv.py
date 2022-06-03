@@ -115,7 +115,7 @@ def json2csv(file_name: str, sort_it: bool = True):
             if sort_it:
                 data = sorted(data, key=lambda d: d['hop'])
             csv = data_to_csv(data, sort_it)
-            if csv != "": # todo (xhdix): it will never be empty. we shold do better
+            if csv != "": # TODO (xhdix): it will never be empty. we should do better
                 logger.info("saving measurement in csv...")
                 csvfile.write(csv)
                 logger.info("saved: " + new_file_name)
