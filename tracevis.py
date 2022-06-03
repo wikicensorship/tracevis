@@ -24,6 +24,11 @@ DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
 
 
+def show_conf_route():
+    from scapy.all import conf
+    print(conf.route)
+
+
 def dump_args_to_file(file, args, packet_info):
     args_without_config_arg = args.copy()
     if 'config_file' in args_without_config_arg:
@@ -121,6 +126,10 @@ change the behavior of the trace route
 - 'new' : to change source port, sequence number, etc in each request (default)
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
+    parser.add_argument('--iface', type=str,
+                        help="set the target network interface")
+    parser.add_argument('--show-ifaces', action='store_true',
+                        help="show the network interfaces (conf.route)")
     if len(sys_args) == 0 and auto_exit:
         parser.print_help()
         sys.exit(1)
@@ -158,6 +167,7 @@ def main(args):
     edge_lable = "backttl"
     trace_retransmission = False
     trace_with_retransmission = False
+    iface = None
     output_dir = os.getenv('TRACEVIS_OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -190,14 +200,26 @@ def main(args):
     if args.get("paris"):
         trace_with_retransmission = True
     if args.get("options"):
-        # this argument will be changed or removed before v1.0.0
         trace_options = args["options"].replace(' ', '').split(',')
         if "new" in trace_options and "rexmit" in trace_options:
+            print("Notice: this argument will be changed or removed before v1.0.0")
+            print("use --paris intead")
             trace_with_retransmission = True
         elif "rexmit" in trace_options:
+            print("Notice: this argument will be changed or removed before v1.0.0")
+            print("use --rexmit intead")
             trace_retransmission = True
         else:
             pass  # "new" is default
+    if args.get("iface"):
+        if args["iface"] == "":
+            show_conf_route()
+            exit()
+        else:
+            iface = args["iface"]
+    if args.get("show_ifaces"):
+        show_conf_route()
+        exit()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix += "dns"
@@ -211,8 +233,10 @@ def main(args):
         name_prefix += "packet"
         try:
             if args.get('packet_input_method') == 'json':
-                input_packet = utils.packet_input.InputPacketInfo.from_json(OS_NAME, trace_retransmission,
-                                                                            packet_data=deepcopy(args.get('packet_data')))
+                input_packet = utils.packet_input.InputPacketInfo.from_json(
+                    OS_NAME, trace_retransmission, packet_data=deepcopy(
+                        args.get('packet_data'))
+                )
             elif args.get('packet_input_method') == 'interactive':
                 input_packet = utils.packet_input.InputPacketInfo.from_scapy(
                     OS_NAME, trace_retransmission)
@@ -235,25 +259,17 @@ def main(args):
         if args.get("packet") or args.get("rexmit"):
             with input_packet as ctx:
                 packet_1, packet_2, do_tcph1, do_tcph2 = ctx
-                was_successful, measurement_path = utils.trace.trace_route(
-                    ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
-                    max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
-                    request_packet_2=packet_2, name_prefix=name_prefix,
-                    annotation_1=annotation_1, annotation_2=annotation_2,
-                    continue_to_max_ttl=continue_to_max_ttl,
-                    do_tcph1=do_tcph1, do_tcph2=do_tcph2,
-                    trace_retransmission=trace_retransmission,
-                    trace_with_retransmission=trace_with_retransmission)
-        else:
-            was_successful, measurement_path = utils.trace.trace_route(
-                ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
-                max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
-                request_packet_2=packet_2, name_prefix=name_prefix,
-                annotation_1=annotation_1, annotation_2=annotation_2,
-                continue_to_max_ttl=continue_to_max_ttl,
-                do_tcph1=do_tcph1, do_tcph2=do_tcph2,
-                trace_retransmission=trace_retransmission,
-                trace_with_retransmission=trace_with_retransmission)
+        was_successful, measurement_path, no_internet = utils.trace.trace_route(
+            ip_list=request_ips, request_packet_1=packet_1, output_dir=output_dir,
+            max_ttl=max_ttl, timeout=timeout, repeat_requests=repeat_requests,
+            request_packet_2=packet_2, name_prefix=name_prefix,
+            annotation_1=annotation_1, annotation_2=annotation_2,
+            continue_to_max_ttl=continue_to_max_ttl,
+            do_tcph1=do_tcph1, do_tcph2=do_tcph2,
+            trace_retransmission=trace_retransmission,
+            trace_with_retransmission=trace_with_retransmission, iface=iface)
+        if no_internet:
+            attach_jscss = True
     if args.get("ripe"):
         measurement_ids = ""
         if args.get("ripemids"):
