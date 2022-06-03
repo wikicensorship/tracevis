@@ -15,6 +15,13 @@ import utils.packet_input
 import utils.ripe_atlas
 import utils.trace
 import utils.vis
+import textwrap
+import logging
+
+import json
+from copy import deepcopy
+
+logger = None
 
 TIMEOUT = 1
 MAX_TTL = 50
@@ -62,6 +69,7 @@ def process_input_args(args, parser):
 
 
 def get_args():
+    global logger
     parser = argparse.ArgumentParser(
         description='Traceroute with any packet. \
             Visualize the routes. Discover Middleboxes and Firewalls', formatter_class=argparse.RawTextHelpFormatter)
@@ -126,6 +134,8 @@ change the behavior of the trace route
 - 'new' : to change source port, sequence number, etc in each request (default)
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
+    parser.add_argument('--verbose', '-v', action='count', default=0,
+                        help='Set log level: -v for WARNING, -vv for INFO, -vvv for DEBUG')
     parser.add_argument('--iface', type=str,
                         help="set the target network interface")
     parser.add_argument('--show-ifaces', action='store_true',
@@ -134,6 +144,9 @@ change the behavior of the trace route
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
+    args.verbose = 40 - (10*args.verbose) if 0 <= args.verbose <= 3 else 40 
+    logging.basicConfig(level=args.verbose, format='%(message)s')
+    logger = logging.getLogger(__name__)
     args_dict = process_input_args(args, parser)
     return args_dict
 
@@ -246,10 +259,10 @@ def main(args):
             else:
                 raise RuntimeError("Bad input type")
         except (utils.packet_input.BADPacketException, utils.packet_input.FirewallException) as e:
-            print(f"{e!s}")
+            logger.error(f"{e!s}")
             exit(1)
         except Exception as e:
-            print(f"Error!\n{e!s}")
+            logger.error(f"Error!\n{e!s}")
             exit(2)
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
@@ -292,7 +305,7 @@ def main(args):
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
                 edge_lable=edge_lable):
-            print("finished.")
+            logger.info("finished.")
 
 
 if __name__ == "__main__":

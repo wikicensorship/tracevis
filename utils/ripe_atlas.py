@@ -4,6 +4,8 @@ import json
 import urllib.request
 from datetime import datetime
 from time import sleep
+import logging 
+logger = logging.getLogger(__name__)
 
 MEASUREMENT_IDS = [
     5011,  # c.root-servers.net
@@ -33,14 +35,11 @@ def download_from_atlas(
         measurement_name = "ripe-atlas-" + str(probe_id) + "-tracevis-" \
             + datetime.utcnow().strftime("%Y%m%d-%H%M")
     if probe_id != "":
-        print(
-            " ********************************************************************** ")
-        print(
-            "downloading data from probe ID: " + str(probe_id))
-        print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
+        logger.info(" ********************************************************************** ")
+        logger.info("downloading data from probe ID: " + str(probe_id))
+        logger.info(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
         for measurement_id in measurement_ids:
-            print(
-                "downloading measurement ID: " + str(measurement_id))
+            logger.info("downloading measurement ID: " + str(measurement_id))
             requset_url = ("https://atlas.ripe.net/api/v2/measurements/"
                            + str(measurement_id)
                            + "/latest/?format=json&probe_ids="
@@ -50,24 +49,20 @@ def download_from_atlas(
                 downloaded_data = json.loads(url.read().decode())
             if downloaded_data is not None:
                 all_measurements.append(downloaded_data[0])
-                print(
-                    "downloading measurement ID " + str(measurement_id) + " finished.")
+                logger.info("downloading measurement ID " + str(measurement_id) + " finished.")
             else:
-                print("failed to download measurement ID: "
-                      + str(measurement_id))
+                logger.error(f"failed to download measurement ID: {measurement_id!s}")
             sleep(3)
-            print(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
-        print(
-            " ********************************************************************** ")
+            logger.info(" · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
+        logger.info(" ********************************************************************** ")
         if len(all_measurements) < 1:
             exit()
         measurement_path = output_dir + measurement_name + ".json"
-        print("saving json file... to: " + measurement_path)
+        logger.info("saving json file... to: " + measurement_path)
         with open((measurement_path), 'w', encoding='utf-8') as json_file:
             json.dump(all_measurements, json_file,
                       ensure_ascii=False, indent=4)
-        print("saved: " + measurement_path)
+        logger.info("saved: " + measurement_path)
         was_successful = True
-        print(
-            " ********************************************************************** ")
+        logger.info(" ********************************************************************** ")
         return was_successful, measurement_path
