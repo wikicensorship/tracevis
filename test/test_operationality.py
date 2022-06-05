@@ -32,7 +32,7 @@ class TestArguments(unittest.TestCase):
                     'packet_data': None, 'dns': False, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
 
@@ -49,7 +49,10 @@ class TestArguments(unittest.TestCase):
             with open(os.path.join(samples_dir, file), 'r') as f:
                 expected = json.load(f)
                 del args['config_file'] 
-                self.assertEqual(args, expected)
+                for k,v in args.items():
+                    if k in expected:
+                        self.assertEqual(v, expected[k])
+
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
         self.maxDiff = md
 
@@ -62,7 +65,7 @@ class TestArguments(unittest.TestCase):
                     'packet_data': None, 'dns': True, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
 
@@ -75,7 +78,7 @@ class TestArguments(unittest.TestCase):
                     'packet_data': None, 'dns': False, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
 
@@ -88,7 +91,7 @@ class TestArguments(unittest.TestCase):
                     'packet_data': None, 'dns': False, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
 
         args = tracevis.get_args(['--packet', '--packet-input-method', 'json'], auto_exit=False)
@@ -96,7 +99,7 @@ class TestArguments(unittest.TestCase):
                     'packet_data': None, 'dns': False, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
 
         args = tracevis.get_args(['--packet', '--packet-input-method', 'interactive'], auto_exit=False)
@@ -104,7 +107,7 @@ class TestArguments(unittest.TestCase):
                     'packet_data': None, 'dns': False, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
 
         args = tracevis.get_args(['--packet', '--packet-input-method', 'json', '--packet-data', 'b64:e30='], auto_exit=False)
@@ -112,7 +115,7 @@ class TestArguments(unittest.TestCase):
                 'packet_data': 'b64:e30=', 'dns': False, 'dnstcp': False, 'continue': False, 'maxttl': None, 
                     'timeout': None, 'repeat': None, 'ripe': None, 'ripemids': None, 'file': None, 'csv': False, 
                     'csvraw': False, 'attach': False, 'label': None, 'domain1': None, 'domain2': None, 'annot1': None, 
-                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new'}
+                    'annot2': None, 'rexmit': False, 'paris': False, 'options': 'new', 'iface': None, 'show_ifaces': False}
         self.assertEqual(args, expected)
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
         
