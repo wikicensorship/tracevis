@@ -1,8 +1,7 @@
 FROM python:3.10-alpine
 
 ENV PYTHONUNBUFFERED 1
-
-ENV TRACEVIS_OUTPUT_DIR=/tracevis_data/
+ENV TRACEVIS_OUTPUT_DIR /tracevis_data/
 
 WORKDIR /tracevis
 
