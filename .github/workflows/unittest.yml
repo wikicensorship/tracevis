@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: 3
       - name: Install requirements
-        run: pip install requirements.txt
+        run: pip install -r requirements.txt
       - name: Launch tests 
         run: python -m unittest discover test
 
