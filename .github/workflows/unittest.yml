@@ -16,5 +16,5 @@ jobs:
         with:
           python-version: 3
       - name: Launch tests 
-        run: python -m unittest discover tests
+        run: python -m unittest discover test
 
