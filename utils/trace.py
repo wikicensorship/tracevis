@@ -9,11 +9,8 @@ from copy import deepcopy
 from datetime import datetime
 from time import sleep
 
-from scapy.all import Raw, conf, get_if_addr
-from scapy.layers.dns import DNS
-from scapy.layers.inet import ICMP, IP, TCP, UDP
-from scapy.sendrecv import send, sr, sr1
-from scapy.volatile import RandInt, RandShort
+from scapy.all import (DNS, ICMP, IP, TCP, UDP, RandInt, RandShort, Raw, conf,
+                       get_if_addr, send, sr, sr1)
 
 import utils.ephemeral_port
 import utils.geolocate
@@ -23,7 +20,7 @@ SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
-user_iface=None
+user_iface = None
 measurement_data = [[], []]
 OS_NAME = platform.system()
 
@@ -171,7 +168,8 @@ def send_packet_with_tcphandshake(this_request, timeout):
             sport=source_port, dport=destination_port, seq=RandInt(),
             flags="S", options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
-        ans, unans = sr(send_syn, iface=user_iface, verbose=0, timeout=tcp_handshake_timeout)
+        ans, unans = sr(send_syn, iface=user_iface, verbose=0,
+                        timeout=tcp_handshake_timeout)
         if len(ans) == 0:
             print("Warning: No response to SYN packet yet")
         max_repeat += 1
@@ -454,7 +452,7 @@ def trace_route(
         trace_with_retransmission: bool = False, iface=None
 ):
     global user_iface
-    user_iface=iface
+    user_iface = iface
     check_for_permission()
     measurement_name = ""
     request_packets = []
@@ -508,7 +506,8 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(user_iface)
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(
+        user_iface)
     if name_prefix != "":
         measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
