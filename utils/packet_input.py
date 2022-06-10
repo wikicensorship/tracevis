@@ -3,8 +3,7 @@ import base64
 import json
 import subprocess
 
-from scapy.layers.inet import IP, TCP
-from scapy.utils import hexdump, import_hexcap
+from scapy.all import IP, TCP, hexdump, import_hexcap
 
 FIREWALL_COMMANDS_HELP = "\r\n( · - · · · \r\n\
 You may need to temporarily block RST output packets in your firewall.\r\n\
@@ -216,7 +215,7 @@ class InputPacketInfo:
 
     @classmethod
     def _read_interactive_packet(cls, show=False):
-        from scapy.layers.inet import IP, TCP
+        import scapy.all
         banner = "Please create your packet in variable \"p\" and exit when you are done"
         try:
             from IPython.terminal.embed import InteractiveShellEmbed

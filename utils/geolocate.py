@@ -5,10 +5,7 @@ import os
 import platform
 from urllib.request import Request, urlopen
 
-from scapy.layers.dns import DNS, DNSQR, DNSRR
-from scapy.layers.inet import IP, UDP
-from scapy.sendrecv import sr
-from scapy.volatile import RandShort
+from scapy.all import DNS, DNSQR, DNSRR, IP, UDP, RandShort, sr
 
 import utils.ephemeral_port
 
