@@ -14,7 +14,7 @@ def packet2json(packet_obj, public_ip):
         elif '=' in line:
             key, val = line.split('=', 1)
             val = val.replace(public_ip, '127.1.2.7')
-            if layer == 'Raw' and key.strip() == 'load':
+            if key.strip() == 'load':
                 packet_dict[layer][key.strip()] = b64encode(
                     packet_obj['Raw'].load).decode()
             else:
