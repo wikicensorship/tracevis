@@ -279,7 +279,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
     if do_not_parse:
         return request_and_answers, unanswered
-    if do_tcphandshake:
+    if do_tcphandshake and not trace_retransmission:
         sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
     return parse_packet(request_and_answers, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
 
@@ -590,7 +590,10 @@ def trace_route(
                         previous_node_ids[access_block_steps][ip_steps] = answer_ip
                     print(
                         " · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
-                    sleep(sleep_time)
+                    if have_2_packet or len(request_ips) > 1:
+                        sleep(sleep_time)
+                    else:
+                        sleep(0.1)
                     ip_steps += 1
                     was_successful = True
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:
