@@ -429,6 +429,14 @@ def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
     return request_packets_for_rexmit
 
 
+def change_dst_port(request_packet, dst_port):
+    if request_packet.haslayer(TCP):
+        request_packet[TCP].dport = dst_port
+    elif request_packet.haslayer(UDP):
+        request_packet[UDP].dport = dst_port
+    return request_packet
+
+
 def check_for_permission():
     global user_iface
     try:
@@ -449,7 +457,8 @@ def trace_route(
         continue_to_max_ttl: bool = False,
         do_tcph1: bool = False, do_tcph2: bool = False,
         trace_retransmission: bool = False,
-        trace_with_retransmission: bool = False, iface=None
+        trace_with_retransmission: bool = False, iface=None,
+        dst_port: int = -1
 ):
     global user_iface
     user_iface = iface
@@ -472,6 +481,8 @@ def trace_route(
     if request_packet_2 == "":
         if trace_retransmission:
             request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
+        if dst_port != -1:
+            request_packet_1 = change_dst_port(request_packet_1, dst_port)
         request_packets.append(request_packet_1)
         do_tcphandshake.append(do_tcph1)
         have_2_packet = False
@@ -479,6 +490,9 @@ def trace_route(
         if trace_retransmission:
             request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
             request_packet_2[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
+        if dst_port != -1:
+            request_packet_1 = change_dst_port(request_packet_1, dst_port)
+            request_packet_2 = change_dst_port(request_packet_2, dst_port)
         request_packets.append(request_packet_1)
         request_packets.append(request_packet_2)
         do_tcphandshake.append(do_tcph1)

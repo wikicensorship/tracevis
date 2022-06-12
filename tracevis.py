@@ -118,6 +118,8 @@ def get_args():
                         help="same as rexmit option (only one packet. all TTL steps, same stream)")
     parser.add_argument('--paris', action='store_true',
                         help="same as 'new,rexmit' option (like Paris-Traceroute)")
+    parser.add_argument('--port', type=int,
+                        help="change the destination port in the packets")
     # this argument ('-o', '--options') will be changed or removed before v1.0.0
     parser.add_argument('-o', '--options', type=str, default="new",
                         help=""" (this argument will be changed or removed before v1.0.0)
@@ -168,6 +170,7 @@ def main(args):
     trace_retransmission = False
     trace_with_retransmission = False
     iface = None
+    dst_port = -1
     output_dir = os.getenv('TRACEVIS_OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -199,6 +202,8 @@ def main(args):
         trace_retransmission = True
     if args.get("paris"):
         trace_with_retransmission = True
+    if args.get("port"):
+        dst_port = args["port"]
     if args.get("options"):
         trace_options = args["options"].replace(' ', '').split(',')
         if "new" in trace_options and "rexmit" in trace_options:
@@ -267,7 +272,8 @@ def main(args):
             continue_to_max_ttl=continue_to_max_ttl,
             do_tcph1=do_tcph1, do_tcph2=do_tcph2,
             trace_retransmission=trace_retransmission,
-            trace_with_retransmission=trace_with_retransmission, iface=iface)
+            trace_with_retransmission=trace_with_retransmission, iface=iface,
+            dst_port=dst_port)
         if no_internet:
             attach_jscss = True
     if args.get("ripe"):
