@@ -30,6 +30,7 @@ def show_conf_route():
 
 
 def dump_args_to_file(file, args, packet_info):
+    print("saving measurement config...")
     args_without_config_arg = args.copy()
     if 'config_file' in args_without_config_arg:
         del args_without_config_arg['config_file']
@@ -38,6 +39,8 @@ def dump_args_to_file(file, args, packet_info):
         args_without_config_arg['packet_input_method'] = 'json'
     with open(file, 'w') as f:
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
+    print("saved: " + file)
+    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
 
 
 def process_input_args(args, parser):
