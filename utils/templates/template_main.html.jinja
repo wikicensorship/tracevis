@@ -20,8 +20,8 @@
   }
 
   #legend {
-      width: 270px;
-      height: 360px;
+      width: 135px;
+      height: 180px;
       background-color: #dfdfdf77;
       border: 1px solid #b7b7b799;
       position: fixed;
@@ -306,20 +306,20 @@
           ['pep', 'PEP', 'star', 'green']
       ]
 
-      let x = -legend.clientWidth / 2 + 65;
-      let y = -legend.clientHeight / 2 + 30;
-      let step = 70;
+      let x = -legend.clientWidth / 2 + 33;
+      let y = -legend.clientHeight / 2 + 15;
+      let step = 35;
       let max_row = 5
 
       items.forEach((v, idx) => {
           nodes.push({
               id: idx,
-              x: idx < max_row ? x : x + 125,
+              x: idx < max_row ? x : x + 62,
               y: idx < max_row ? y + idx * step : y + (idx - max_row) * step,
               label: v[1],
               group: v[0],
-              size: 10,
-              font: '14px arial black',
+              size: 5,
+              font: '7px arial black',
               fixed: true,
               physics: false
           });
