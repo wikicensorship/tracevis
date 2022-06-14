@@ -293,8 +293,9 @@ def main(args):
         else:
             was_successful = True
     if was_successful:
-        config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
-        dump_args_to_file(config_dump_file_name, args, input_packet)
+        if not args.get("file"):
+            config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
+            dump_args_to_file(config_dump_file_name, args, input_packet)
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
                 edge_lable=edge_lable):
