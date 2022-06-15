@@ -3,7 +3,7 @@ import base64
 import json
 import subprocess
 
-from scapy.all import IP, TCP, hexdump, import_hexcap
+from scapy.all import IP, TCP, Ether, hexdump, import_hexcap
 
 FIREWALL_COMMANDS_HELP = "\r\n( · - · · · \r\n\
 You may need to temporarily block RST output packets in your firewall.\r\n\
@@ -113,24 +113,30 @@ class InputPacketInfo:
 
     @classmethod
     def _supported_or_correct(cls, copied_packet):
-        return (copied_packet[IP].version == 4)
+        return (copied_packet.haslayer(IP) and (copied_packet[IP].version == 4))
 
     @classmethod
     def _read_pasted_packet(cls, show=False):
         print(" ********************************************************************** ")
         print(" paste here the packet hex dump start with the IP layer and then enter :")
         print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-        p1 = IP(import_hexcap())
+        packet_string = import_hexcap()
         print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-        if not cls._supported_or_correct(p1):
-            raise BADPacketException(
-                "it's not IPv4 or the hexdump is not started with IP layer")
-        p1[IP].src = '127.1.2.7'
+        packet_object = None
+        if not cls._supported_or_correct(IP(packet_string)):
+            if not cls._supported_or_correct(Ether(packet_string).payload):
+                raise BADPacketException(
+                    "it's not IPv4 or the hexdump is not started with IP layer")
+            else:
+                packet_object = Ether(packet_string).payload
+        else:
+            packet_object = IP(packet_string)
+        packet_object[IP].src = '127.1.2.7'
         if show:
             print(" . . . - . developed view of this packet:")
-            p1.show()
-            print(" . . . - .     . . . - .     . . . - .     . . . - . ")
-        return p1
+            packet_object.show()
+            print(" . . . - .   (make sure it's correct)   . . . - . ")
+        return packet_object
 
     @classmethod
     def from_stdin(cls, os_name: str, trace_retransmission: bool):
