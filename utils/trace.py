@@ -510,7 +510,7 @@ def trace_route(
         else:
             request_ips.append(request_packet_1[IP].dst)
         if have_2_packet:
-            if request_packet_1[IP].dst not in ["", LOCALHOST, request_ips[0]]:
+            if request_packet_2[IP].dst not in ["", LOCALHOST, request_ips[0]]:
                 request_ips.append(request_packet_2[IP].dst)
     else:
         request_ips = ip_list
