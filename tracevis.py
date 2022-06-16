@@ -34,20 +34,13 @@ def combine_json_files(json_list_files):
     all_measurements = []
     for json_list_file in json_list_files:
         for json_file in json_list_file:
-            try:
-                print("· - · · · adding: " + json_file)
-                if os.path.isfile(json_file):
-                    with open(json_file) as json_file:
-                        for measurement in json.load(json_file):
-                            all_measurements.append(measurement)
-                else:
-                    print("error: " + json_file + " does not exist!")
-                    exit(1)
-            except Exception as e:
-                print(f"Error!\n{e!s}")
-                exit(2)
+            print("· - · · · adding: " + json_file)
+            with open(json_file) as json_file:
+                for measurement in json.load(json_file):
+                    all_measurements.append(measurement)
     print("· · · - ·      · · · - ·      · · · - ·      · · · - · ")
-    combined_data_path = json_list_files[0][0].replace(".json", "_combined.json")
+    combined_data_path = json_list_files[0][0].replace(
+        ".json", "_combined.json")
     with open(combined_data_path, "w") as combined_jsonfile:
         combined_jsonfile.write(json.dumps(all_measurements,
                                            default=lambda o: o.__dict__))
@@ -315,16 +308,20 @@ def main(args):
             probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix,
             measurement_ids=measurement_ids)
     if args.get("file"):
-        # -f filename*.json
-        #       [['filename1.json','filename2.json','filename3.json',]]
-        #
-        # -f filename1.json -f filename2.json
-        #       [['filename1.json'],['filename2.json']]
-        #
-        if len(args["file"]) > 1 or len(args["file"][0]) > 1:
-            measurement_path = combine_json_files(args["file"])
-        else:
-            measurement_path = args["file"][0][0]
+        try:
+            # -f filename*.json
+            #       [['filename1.json','filename2.json','filename3.json',]]
+            #
+            # -f filename1.json -f filename2.json
+            #       [['filename1.json'],['filename2.json']]
+            #
+            if len(args["file"]) > 1 or len(args["file"][0]) > 1:
+                measurement_path = combine_json_files(args["file"])
+            else:
+                measurement_path = args["file"][0][0]
+        except Exception as e:
+            print(f"Error!\n{e!s}")
+            exit(1)
         if args.get("csv"):
             utils.csv.json2csv(measurement_path)
         elif args.get("csvraw"):
