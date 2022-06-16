@@ -29,6 +29,26 @@ def show_conf_route():
     print(conf.route)
 
 
+def combine_json_files(json_list_files):
+    print("saving combined json file...")
+    all_measurements = []
+    for json_list_file in json_list_files:
+        for json_file in json_list_file:
+            print("· - · · · adding: " + json_file)
+            with open(json_file) as json_file:
+                for measurement in json.load(json_file):
+                    all_measurements.append(measurement)
+    print("· · · - ·      · · · - ·      · · · - ·      · · · - · ")
+    combined_data_path = json_list_files[0][0].replace(
+        ".json", "_combined.json")
+    with open(combined_data_path, "w") as combined_jsonfile:
+        combined_jsonfile.write(json.dumps(all_measurements,
+                                           default=lambda o: o.__dict__))
+    print("saved: " + combined_data_path)
+    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
+    return combined_data_path
+
+
 def dump_args_to_file(file, args, packet_info):
     print("saving measurement config...")
     args_without_config_arg = args.copy()
@@ -99,7 +119,7 @@ def get_args():
                         help="download the latest traceroute measuremets of a RIPE Atlas probe via ID and visualize")
     parser.add_argument('-I', '--ripemids', type=str,
                         help="add comma-separated RIPE Atlas measurement IDs (up to 12)")
-    parser.add_argument('-f', '--file', type=str,
+    parser.add_argument('-f', '--file', type=str, action='append', nargs='+',
                         help="open a measurement file and visualize")
     parser.add_argument('--csv', action='store_true',
                         help="create a sorted csv file instead of visualization")
@@ -288,7 +308,20 @@ def main(args):
             probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix,
             measurement_ids=measurement_ids)
     if args.get("file"):
-        measurement_path = args["file"]
+        try:
+            # -f filename*.json
+            #       [['filename1.json','filename2.json','filename3.json',]]
+            #
+            # -f filename1.json -f filename2.json
+            #       [['filename1.json'],['filename2.json']]
+            #
+            if len(args["file"]) > 1 or len(args["file"][0]) > 1:
+                measurement_path = combine_json_files(args["file"])
+            else:
+                measurement_path = args["file"][0][0]
+        except Exception as e:
+            print(f"Error!\n{e!s}")
+            exit(1)
         if args.get("csv"):
             utils.csv.json2csv(measurement_path)
         elif args.get("csvraw"):
