@@ -1,0 +1,22 @@
+name: UnitTest
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    name: Run UnitTests
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      - name: Launch tests 
+        run: python -m unittest discover test
+
