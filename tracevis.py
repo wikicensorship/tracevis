@@ -29,7 +29,28 @@ def show_conf_route():
     print(conf.route)
 
 
+def combine_json_files(json_list_files):
+    print("saving combined json file...")
+    all_measurements = []
+    for json_list_file in json_list_files:
+        for json_file in json_list_file:
+            print("· - · · · adding: " + json_file)
+            with open(json_file) as json_file:
+                for measurement in json.load(json_file):
+                    all_measurements.append(measurement)
+    print("· · · - ·      · · · - ·      · · · - ·      · · · - · ")
+    combined_data_path = json_list_files[0][0].replace(
+        ".json", "_combined.json")
+    with open(combined_data_path, "w") as combined_jsonfile:
+        combined_jsonfile.write(json.dumps(all_measurements,
+                                           default=lambda o: o.__dict__))
+    print("saved: " + combined_data_path)
+    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
+    return combined_data_path
+
+
 def dump_args_to_file(file, args, packet_info):
+    print("saving measurement config...")
     args_without_config_arg = args.copy()
     if 'config_file' in args_without_config_arg:
         del args_without_config_arg['config_file']
@@ -38,6 +59,8 @@ def dump_args_to_file(file, args, packet_info):
         args_without_config_arg['packet_input_method'] = 'json'
     with open(file, 'w') as f:
         json.dump(args_without_config_arg, f, indent=4, sort_keys=True)
+    print("saved: " + file)
+    print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
 
 
 def process_input_args(args, parser):
@@ -96,7 +119,7 @@ def get_args(sys_args, auto_exit=True):
                         help="download the latest traceroute measuremets of a RIPE Atlas probe via ID and visualize")
     parser.add_argument('-I', '--ripemids', type=str,
                         help="add comma-separated RIPE Atlas measurement IDs (up to 12)")
-    parser.add_argument('-f', '--file', type=str,
+    parser.add_argument('-f', '--file', type=str, action='append', nargs='+',
                         help="open a measurement file and visualize")
     parser.add_argument('--csv', action='store_true',
                         help="create a sorted csv file instead of visualization")
@@ -118,6 +141,8 @@ def get_args(sys_args, auto_exit=True):
                         help="same as rexmit option (only one packet. all TTL steps, same stream)")
     parser.add_argument('--paris', action='store_true',
                         help="same as 'new,rexmit' option (like Paris-Traceroute)")
+    parser.add_argument('--port', type=int,
+                        help="change the destination port in the packets")
     # this argument ('-o', '--options') will be changed or removed before v1.0.0
     parser.add_argument('-o', '--options', type=str, default="new",
                         help=""" (this argument will be changed or removed before v1.0.0)
@@ -168,6 +193,7 @@ def main(args):
     trace_retransmission = False
     trace_with_retransmission = False
     iface = None
+    dst_port = -1
     output_dir = os.getenv('TRACEVIS_OUTPUT_DIR', DEFAULT_OUTPUT_DIR)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -199,6 +225,8 @@ def main(args):
         trace_retransmission = True
     if args.get("paris"):
         trace_with_retransmission = True
+    if args.get("port"):
+        dst_port = args["port"]
     if args.get("options"):
         trace_options = args["options"].replace(' ', '').split(',')
         if "new" in trace_options and "rexmit" in trace_options:
@@ -267,7 +295,8 @@ def main(args):
             continue_to_max_ttl=continue_to_max_ttl,
             do_tcph1=do_tcph1, do_tcph2=do_tcph2,
             trace_retransmission=trace_retransmission,
-            trace_with_retransmission=trace_with_retransmission, iface=iface)
+            trace_with_retransmission=trace_with_retransmission, iface=iface,
+            dst_port=dst_port)
         if no_internet:
             attach_jscss = True
     if args.get("ripe"):
@@ -279,7 +308,20 @@ def main(args):
             probe_id=args["ripe"], output_dir=output_dir, name_prefix=name_prefix,
             measurement_ids=measurement_ids)
     if args.get("file"):
-        measurement_path = args["file"]
+        try:
+            # -f filename*.json
+            #       [['filename1.json','filename2.json','filename3.json',]]
+            #
+            # -f filename1.json -f filename2.json
+            #       [['filename1.json'],['filename2.json']]
+            #
+            if len(args["file"]) > 1 or len(args["file"][0]) > 1:
+                measurement_path = combine_json_files(args["file"])
+            else:
+                measurement_path = args["file"][0][0]
+        except Exception as e:
+            print(f"Error!\n{e!s}")
+            exit(1)
         if args.get("csv"):
             utils.csv.json2csv(measurement_path)
         elif args.get("csvraw"):
@@ -287,8 +329,9 @@ def main(args):
         else:
             was_successful = True
     if was_successful:
-        config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
-        dump_args_to_file(config_dump_file_name, args, input_packet)
+        if not args.get("file"):
+            config_dump_file_name = f"{os.path.splitext(measurement_path)[0]}.conf"
+            dump_args_to_file(config_dump_file_name, args, input_packet)
         if utils.vis.vis(
                 measurement_path=measurement_path, attach_jscss=attach_jscss,
                 edge_lable=edge_lable):

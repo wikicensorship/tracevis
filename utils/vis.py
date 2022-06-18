@@ -29,8 +29,10 @@ REQUEST_COLORS = [
 ]
 
 
-TEMPLATE_PATH = os.path.dirname(
+OFFLINE_TEMPLATE_PATH = os.path.dirname(
     __file__) + "/templates/template_offline.html.jinja"
+MAIN_TEMPLATE_PATH = os.path.dirname(
+    __file__) + "/templates/template_main.html.jinja"
 
 multi_directed_graph = nx.MultiDiGraph()
 
@@ -249,7 +251,9 @@ def save_measurement_graph(graph_name, attach_jscss):
     net_vis.from_nx(multi_directed_graph)
     net_vis.set_edge_smooth('dynamic')
     if attach_jscss:
-        net_vis.set_template(TEMPLATE_PATH)
+        net_vis.set_template(OFFLINE_TEMPLATE_PATH)
+    else:
+        net_vis.set_template(MAIN_TEMPLATE_PATH)
     if graph_name.endswith(".json"):
         graph_name = graph_name[:-5]
     graph_path = graph_name + ".html"

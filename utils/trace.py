@@ -9,11 +9,8 @@ from copy import deepcopy
 from datetime import datetime
 from time import sleep
 
-from scapy.all import Raw, conf, get_if_addr
-from scapy.layers.dns import DNS
-from scapy.layers.inet import ICMP, IP, TCP, UDP
-from scapy.sendrecv import send, sr, sr1
-from scapy.volatile import RandInt, RandShort
+from scapy.all import (DNS, ICMP, IP, TCP, UDP, RandInt, RandShort, Raw, conf,
+                       get_if_addr, send, sr, sr1)
 
 import utils.ephemeral_port
 import utils.geolocate
@@ -23,7 +20,7 @@ SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
-user_iface=None
+user_iface = None
 measurement_data = [[], []]
 OS_NAME = platform.system()
 
@@ -171,7 +168,8 @@ def send_packet_with_tcphandshake(this_request, timeout):
             sport=source_port, dport=destination_port, seq=RandInt(),
             flags="S", options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
-        ans, unans = sr(send_syn, iface=user_iface, verbose=0, timeout=tcp_handshake_timeout)
+        ans, unans = sr(send_syn, iface=user_iface, verbose=0,
+                        timeout=tcp_handshake_timeout)
         if len(ans) == 0:
             print("Warning: No response to SYN packet yet")
         max_repeat += 1
@@ -281,7 +279,7 @@ def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshak
     elapsed_ms = float(format(abs((end_time - start_time) * 1000), '.3f'))
     if do_not_parse:
         return request_and_answers, unanswered
-    if do_tcphandshake:
+    if do_tcphandshake and not trace_retransmission:
         sleep(timeout)  # double sleep (￣o￣) . z Z. maybe we should wait more
     return parse_packet(request_and_answers, unanswered, current_ttl, elapsed_ms, do_tcphandshake)
 
@@ -431,6 +429,14 @@ def generate_packets_for_each_ip(request_packets, request_ips, do_tcphandshake):
     return request_packets_for_rexmit
 
 
+def change_dst_port(request_packet, dst_port):
+    if request_packet.haslayer(TCP):
+        request_packet[TCP].dport = dst_port
+    elif request_packet.haslayer(UDP):
+        request_packet[UDP].dport = dst_port
+    return request_packet
+
+
 def check_for_permission():
     global user_iface
     try:
@@ -451,10 +457,11 @@ def trace_route(
         continue_to_max_ttl: bool = False,
         do_tcph1: bool = False, do_tcph2: bool = False,
         trace_retransmission: bool = False,
-        trace_with_retransmission: bool = False, iface=None
+        trace_with_retransmission: bool = False, iface=None,
+        dst_port: int = -1
 ):
     global user_iface
-    user_iface=iface
+    user_iface = iface
     check_for_permission()
     measurement_name = ""
     request_packets = []
@@ -474,6 +481,8 @@ def trace_route(
     if request_packet_2 == "":
         if trace_retransmission:
             request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
+        if dst_port != -1:
+            request_packet_1 = change_dst_port(request_packet_1, dst_port)
         request_packets.append(request_packet_1)
         do_tcphandshake.append(do_tcph1)
         have_2_packet = False
@@ -481,6 +490,9 @@ def trace_route(
         if trace_retransmission:
             request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
             request_packet_2[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
+        if dst_port != -1:
+            request_packet_1 = change_dst_port(request_packet_1, dst_port)
+            request_packet_2 = change_dst_port(request_packet_2, dst_port)
         request_packets.append(request_packet_1)
         request_packets.append(request_packet_2)
         do_tcphandshake.append(do_tcph1)
@@ -498,7 +510,7 @@ def trace_route(
         else:
             request_ips.append(request_packet_1[IP].dst)
         if have_2_packet:
-            if request_packet_1[IP].dst not in ["", LOCALHOST, request_ips[0]]:
+            if request_packet_2[IP].dst not in ["", LOCALHOST, request_ips[0]]:
                 request_ips.append(request_packet_2[IP].dst)
     else:
         request_ips = ip_list
@@ -508,7 +520,8 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(user_iface)
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(
+        user_iface)
     if name_prefix != "":
         measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
             datetime.utcnow().strftime("%Y%m%d-%H%M")
@@ -591,7 +604,10 @@ def trace_route(
                         previous_node_ids[access_block_steps][ip_steps] = answer_ip
                     print(
                         " · · · - - - · · ·     · · · - - - · · ·     · · · - - - · · · ")
-                    sleep(sleep_time)
+                    if have_2_packet or len(request_ips) > 1:
+                        sleep(sleep_time)
+                    else:
+                        sleep(0.1)
                     ip_steps += 1
                     was_successful = True
                     if have_2_packet and ip_steps == len(request_ips) and access_block_steps == 0:

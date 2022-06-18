@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-from scapy.layers.dns import DNS, DNSQR
-from scapy.layers.inet import IP, TCP, UDP
+from scapy.all import DNS, DNSQR, IP, TCP, UDP
 
 ACCESSIBLE_ADDRESS = "www.example.com"
 DEFAULT_BLOCKED_ADDRESS = "www.twitter.com"

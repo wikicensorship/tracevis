@@ -113,7 +113,7 @@ or with docker image:
 
 ```sh
 docker run \
-    --mount type=bind,source=/path/to/,target=/tracevis_data/ \
+    --mount type=bind,source=/path/to/results,target=/tracevis_data/ \
     ghcr.io/wikicensorship/tracevis --file /tracevis_data/file.json
 # OR
 docker run \
