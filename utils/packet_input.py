@@ -157,7 +157,7 @@ class InputPacketInfo:
                         
                         if add_firewall_rule and not cls._iptables_exists():
                             # FIXME: WHAT IF NOT? FAIL?
-                            raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if these is such a problem!")
+                            raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if there is such a problem!")
                 else:
                     do_tcph1 = cls._ask_yesno(
                         "Would you like to do a TCP Handshake before sending this packet?")
@@ -262,7 +262,7 @@ class InputPacketInfo:
                         f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly using iptables?")
                 if add_firewall_rule and  not cls._iptables_exists():
                     # FIXME: WHAT IF NOT? FAIL?
-                    raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if therese is such a problem!")
+                    raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if there is such a problem!")
             else:
                 do_tcph1 = cls._ask_yesno(
                     "Would you like to do a TCP Handshake before sending this packet?")
