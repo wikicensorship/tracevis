@@ -7,7 +7,7 @@ from scapy.all import IP, TCP, Ether, hexdump, import_hexcap
 
 FIREWALL_COMMANDS_HELP = "\r\n( · - · · · \r\n\
 You may need to temporarily block RST output packets in your firewall.\r\n\
-For example:\r\n\
+For example with iptables the commands are:\r\n\
 iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP\r\n\
 After the test, you can delete it:\r\n\
 iptables -D OUTPUT -p tcp --tcp-flags RST RST -j DROP\r\n · - · - · )\r\n"
@@ -65,7 +65,7 @@ class InputPacketInfo:
             p = subprocess.run(['iptables', '-L', '-n'], check=True,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
-        except subprocess.CalledProcessError:
+        except:
             return False
 
     @classmethod
@@ -74,7 +74,7 @@ class InputPacketInfo:
             p = subprocess.run(['iptables', '-C', 'OUTPUT', '-p', 'tcp',
                                 '--tcp-flags', 'RST', 'RST', '-j', 'DROP'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
-        except subprocess.CalledProcessError:
+        except:
             return False
 
     @classmethod
@@ -85,7 +85,7 @@ class InputPacketInfo:
             if not cls._check_firewal_out_drop_rule():
                 raise FirewallException("Added DROP rule cannot be verified")
             return True
-        except subprocess.CalledProcessError:
+        except:
             raise FirewallException("Adding DROP rule failed")
 
     @classmethod
@@ -97,7 +97,7 @@ class InputPacketInfo:
                 raise FirewallException(
                     "Removing DROP rule cannot be verified")
             return True
-        except subprocess.CalledProcessError:
+        except:
             raise FirewallException("Removing DROP rule failed")
 
     @classmethod
@@ -149,15 +149,15 @@ class InputPacketInfo:
         if not trace_retransmission:
             if copy_packet_1.haslayer(TCP) and copy_packet_1[TCP].flags == "PA":
                 if os_name.lower() == "linux":
-                    if cls._iptables_exists():
-                        do_tcph1 = cls._ask_yesno(
+                    do_tcph1 = cls._ask_yesno(
                             f"Would you like to do a TCP Handshake before sending this packet?")
-                        if not cls._check_firewal_out_drop_rule():
-                            add_firewall_rule = cls._ask_yesno(
-                                f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly?")
-                    else:
-                        # FIXME: WHAT IF NOT? FAIL?
-                        raise FirewallException("No iptables!")
+                    if not cls._check_firewal_out_drop_rule():
+                        add_firewall_rule = cls._ask_yesno(
+                            f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly using iptables?")
+                        
+                        if add_firewall_rule and not cls._iptables_exists():
+                            # FIXME: WHAT IF NOT? FAIL?
+                            raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if there is such a problem!")
                 else:
                     do_tcph1 = cls._ask_yesno(
                         "Would you like to do a TCP Handshake before sending this packet?")
@@ -255,15 +255,14 @@ class InputPacketInfo:
         copy_packet_1 = cls._read_interactive_packet(show=True)
         if not trace_retransmission:
             if os_name.lower() == "linux":
-                if cls._iptables_exists():
-                    do_tcph1 = cls._ask_yesno(
-                        f"Would you like to do a TCP Handshake before sending this packet?")
-                    if not cls._check_firewal_out_drop_rule():
-                        add_firewall_rule = cls._ask_yesno(
-                            f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly?")
-                else:
+                do_tcph1 = cls._ask_yesno(
+                    f"Would you like to do a TCP Handshake before sending this packet?")
+                if not cls._check_firewal_out_drop_rule():
+                    add_firewall_rule = cls._ask_yesno(
+                        f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly using iptables?")
+                if add_firewall_rule and  not cls._iptables_exists():
                     # FIXME: WHAT IF NOT? FAIL?
-                    raise FirewallException("No iptables!")
+                    raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if there is such a problem!")
             else:
                 do_tcph1 = cls._ask_yesno(
                     "Would you like to do a TCP Handshake before sending this packet?")
