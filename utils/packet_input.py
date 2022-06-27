@@ -155,7 +155,7 @@ class InputPacketInfo:
                         add_firewall_rule = cls._ask_yesno(
                             f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly using iptables?")
                         
-                        if not cls._iptables_exists():
+                        if add_firewall_rule and not cls._iptables_exists():
                             # FIXME: WHAT IF NOT? FAIL?
                             raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if these is such a problem!")
                 else:
@@ -260,7 +260,7 @@ class InputPacketInfo:
                 if not cls._check_firewal_out_drop_rule():
                     add_firewall_rule = cls._ask_yesno(
                         f"{FIREWALL_COMMANDS_HELP}\n\nDo You want add rules automaticallly using iptables?")
-                if not cls._iptables_exists():
+                if add_firewall_rule and  not cls._iptables_exists():
                     # FIXME: WHAT IF NOT? FAIL?
                     raise FirewallException("iptables is not installed on this system, you may need use some other method to manually handle OS RST responses if therese is such a problem!")
             else:
