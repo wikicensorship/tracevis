@@ -85,7 +85,7 @@ class InputPacketInfo:
             if not cls._check_firewal_out_drop_rule():
                 raise FirewallException("Added DROP rule cannot be verified")
             return True
-        except subprocess.CalledProcessError:
+        except:
             raise FirewallException("Adding DROP rule failed")
 
     @classmethod
@@ -97,7 +97,7 @@ class InputPacketInfo:
                 raise FirewallException(
                     "Removing DROP rule cannot be verified")
             return True
-        except subprocess.CalledProcessError:
+        except:
             raise FirewallException("Removing DROP rule failed")
 
     @classmethod
