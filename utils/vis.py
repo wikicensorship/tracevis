@@ -6,6 +6,7 @@ import os
 
 import networkx as nx
 from pyvis.network import Network
+import pyvis._version
 
 ROUTER_COLOR = "green"
 WINDOWS_COLOR = "blue"
@@ -248,7 +249,10 @@ def initialize_first_nodes_nx(src_addr, length_all):
 def save_measurement_graph(graph_name, attach_jscss):
     net_vis = Network("1500px", "1500px",
                       directed=True, bgcolor="#eeeeee")
-    net_vis.from_nx(multi_directed_graph)
+    if pyvis._version.__version__ > '0.1.9':
+        net_vis.from_nx(multi_directed_graph, show_edge_weights=False)
+    else:
+        net_vis.from_nx(multi_directed_graph)
     net_vis.set_edge_smooth('dynamic')
     if attach_jscss:
         net_vis.set_template(OFFLINE_TEMPLATE_PATH)
