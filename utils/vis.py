@@ -5,8 +5,8 @@ import json
 import os
 
 import networkx as nx
-from pyvis.network import Network
 import pyvis._version
+from pyvis.network import Network
 
 ROUTER_COLOR = "green"
 WINDOWS_COLOR = "blue"
