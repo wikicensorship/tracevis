@@ -56,33 +56,37 @@ def get_meta_json():
             os.seteuid(usereuid)
 
 
-def get_meta(user_iface=None):
-    no_internet = True
-    public_ip = '127.1.2.7'  # we should know that what we are going to clean
-    network_asn = 'AS0'
-    network_name = ''
-    country_code = ''
-    city = ''
-    print("· - · · · detecting IP, ASN, country, etc · - · · · ")
+def get_meta(no_internet, public_ip, network_asn, network_name, country_code, city, is_done, user_iface=None):
+    no_internet.value = True
+    public_ip.value = '127.1.2.7'  # we should know that what we are going to clean
+    network_asn.value = 'AS0'
+    network_name.value = ''
+    country_code.value = ''
+    city.value = ''
+    
+    result_message =  "+=======================================================================+\n"
+    result_message += "|         · - · · · detecting IP, ASN, country, etc · - · · ·           |\n"
     if not nslookup(user_iface):
-        return no_internet, public_ip, network_asn, network_name, country_code, city
+        return 
     user_meta = get_meta_json()
     if user_meta is not None:
-        no_internet = False
+        no_internet.value = False
         if 'clientIp' in user_meta.keys():
-            public_ip = user_meta['clientIp']
-            print("· · · - · " + public_ip)
-            print('. - . - . we use public IP to know what to remove from data!')
+            public_ip.value = user_meta['clientIp']
+            result_message += "|" + public_ip.value.center(71) + "|\n"
+            result_message += '|' + 'we use public IP to know what to remove from data!'.center(71) + '|\n'
         if 'asn' in user_meta.keys():
-            network_asn = "AS" + str(user_meta['asn'])
-            print("· · · - · " + network_asn)
+            network_asn.value = ("AS" + str(user_meta['asn']))
+            result_message += "|" + network_asn.value.center(71) + '|\n'
         if 'asOrganization' in user_meta.keys():
-            network_name = user_meta['asOrganization']
-            print("· · · - · " + network_name)
+            network_name.value = user_meta['asOrganization']
+            result_message += "|" + network_name.value.center(71) + '|\n'
         if 'country' in user_meta.keys():
-            country_code = user_meta['country']
-            print("· · · - · " + country_code)
+            country_code.value = user_meta['country']
+            result_message += "|" + country_code.value.center(71) + '|\n'
         if 'city' in user_meta.keys():
-            city = user_meta['city']
-            print("· · · - · " + city)
-    return no_internet, public_ip, network_asn, network_name, country_code, city
+            city.value = user_meta['city']
+            result_message += "|" + city.value.center(71) + '|\n'
+    result_message += '+=======================================================================+\n'
+    print(result_message)
+    is_done.value = True

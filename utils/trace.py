@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import json
+from os import wait
 import platform
 import sys
 import time
@@ -15,15 +16,28 @@ from scapy.all import (DNS, ICMP, IP, TCP, UDP, RandInt, RandShort, Raw, conf,
 import utils.ephemeral_port
 import utils.geolocate
 from utils.traceroute_struct import traceroute_data
+from multiprocessing import Process, Value, RawArray 
+import ctypes 
+
 
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
+ANONYMOUS_IP = '127.1.2.7'
 SLEEP_TIME = 1
 have_2_packet = False
 user_iface = None
 measurement_data = [[], []]
 OS_NAME = platform.system()
 
+USER_META_INFO_TIMEOUT = 60   # Seconds
+USER_META_INFO_NO_INTERNET = Value(ctypes.c_bool, True)
+USER_META_INFO_PUBLIC_IP = RawArray(ctypes.c_wchar, 40)
+USER_META_INFO_NETWORK_ASN = RawArray(ctypes.c_wchar, 100)
+USER_META_INFO_NETWORK_NAME = RawArray(ctypes.c_wchar, 100)
+USER_META_INFO_COUNTRY_CODE = RawArray(ctypes.c_wchar, 100)
+USER_META_INFO_CITY = RawArray(ctypes.c_wchar, 100)
+USER_META_INFO_START_TIME = 0
+USER_META_INFO_DONE = Value(ctypes.c_bool, False)
 
 def choose_desirable_packet(request_and_answers, do_tcphandshake):
     # request_and_answers.summary()
@@ -318,8 +332,8 @@ def initialize_first_nodes_json(request_ips):
 
 def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
-        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id,
-        public_ip, network_asn, network_name, country_code, city):
+        packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id):
+
     source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
@@ -327,20 +341,14 @@ def initialize_json_first_nodes(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
                 src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
-                timestamp=start_time, paris_id=paris_id, size=packet_1_size,
-                from_ip=public_ip, network_asn=network_asn,
-                network_name=network_name, country_code=country_code, city=city
-            )
+                timestamp=start_time, paris_id=paris_id, size=packet_1_size)
         )
         if have_2_packet:
             measurement_data[1].append(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
                     src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
-                    timestamp=start_time, paris_id=paris_id, size=packet_2_size,
-                    from_ip=public_ip, network_asn=network_asn,
-                    network_name=network_name, country_code=country_code, city=city
-                )
+                    timestamp=start_time, paris_id=paris_id, size=packet_2_size)
             )
 
 
@@ -377,9 +385,38 @@ def get_packets_info(request_packets):
     return packet_1_proto, packet_2_proto, packet_1_port, packet_2_port, packet_1_size, packet_2_size
 
 
+def update_user_meta_info():
+    elapsed_time = time.time() - USER_META_INFO_START_TIME 
+    if elapsed_time < USER_META_INFO_TIMEOUT and not USER_META_INFO_DONE.value:
+        print("Waiting for meta info to be updated")
+        sleep(USER_META_INFO_TIMEOUT - elapsed_time)
+
+    for item in measurement_data[0]:
+        item.asn = USER_META_INFO_NETWORK_ASN.value
+        item.asname = USER_META_INFO_NETWORK_NAME.value
+        item.cc = USER_META_INFO_COUNTRY_CODE.value
+        item.city = USER_META_INFO_CITY.value
+        item.from_ip = USER_META_INFO_PUBLIC_IP.value
+
+    for item in measurement_data[1]:
+        item.asn = USER_META_INFO_NETWORK_ASN.value
+        item.asname = USER_META_INFO_NETWORK_NAME.value
+        item.cc = USER_META_INFO_COUNTRY_CODE.value
+        item.city = USER_META_INFO_CITY.value
+        item.from_ip = USER_META_INFO_PUBLIC_IP.value
+
+
+def anonymize_measurement_data():
+    for item in measurement_data[0]:
+        item.from_ip = ANONYMOUS_IP
+    for item in measurement_data[1]:
+        item.from_ip = ANONYMOUS_IP
+
 def save_measurement_data(
         request_ips, measurement_name, continue_to_max_ttl, output_dir):
     end_time = int(datetime.utcnow().timestamp())
+    update_user_meta_info()
+    anonymize_measurement_data()
     measurement_data_json = []
     ip_steps = 0
     measurement_data_save = deepcopy(measurement_data)
@@ -460,7 +497,10 @@ def trace_route(
         trace_with_retransmission: bool = False, iface=None,
         dst_port: int = -1
 ):
-    global user_iface
+    global user_iface, USER_META_INFO_NO_INTERNET ,USER_META_INFO_PUBLIC_IP, \
+           USER_META_INFO_NETWORK_ASN ,USER_META_INFO_NETWORK_NAME, \
+           USER_META_INFO_COUNTRY_CODE ,USER_META_INFO_CITY ,USER_META_INFO_START_TIME 
+
     user_iface = iface
     check_for_permission()
     measurement_name = ""
@@ -520,22 +560,23 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(
-        user_iface)
-    if name_prefix != "":
-        measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
-            datetime.utcnow().strftime("%Y%m%d-%H%M")
-    else:
-        measurement_name = network_asn + "-tracevis-" + \
-            datetime.utcnow().strftime("%Y%m%d-%H%M")
+    
+
+    Process(target=utils.geolocate.get_meta, 
+            args=(USER_META_INFO_NO_INTERNET, USER_META_INFO_PUBLIC_IP, 
+                  USER_META_INFO_NETWORK_ASN, USER_META_INFO_NETWORK_NAME, 
+                  USER_META_INFO_COUNTRY_CODE, USER_META_INFO_CITY, USER_META_INFO_DONE, user_iface), 
+            daemon=True).start()
+    USER_META_INFO_START_TIME = time.time()
+
+    measurement_name = (name_prefix + "-tracevis-" if name_prefix else "tracevis-") + datetime.utcnow().strftime("%Y%m%d-%H%M")
+
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,
         packet_1_port=p1_port, packet_2_port=p2_port,
-        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id,
-        public_ip=public_ip, network_asn=network_asn, network_name=network_name,
-        country_code=country_code, city=city
-    )
+        packet_1_size=p1_size, packet_2_size=p2_size, paris_id=paris_id)
+
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
         repeat_all_steps += 1
@@ -626,6 +667,7 @@ def trace_route(
         data_path = save_measurement_data(
             request_ips, measurement_name, continue_to_max_ttl, output_dir)
         print("· · · - · -     · · · - · -     · · · - · -     · · · - · -")
-        return(was_successful, data_path, no_internet)
+        return(was_successful, data_path, bool(USER_META_INFO_NO_INTERNET.value))
     else:
-        return(was_successful, "", no_internet)
+        return(was_successful, "", bool(USER_META_INFO_NO_INTERNET.value))
+
