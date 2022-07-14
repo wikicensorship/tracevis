@@ -7,10 +7,22 @@ from urllib.request import Request, urlopen
 
 from scapy.all import DNS, DNSQR, DNSRR, IP, UDP, RandShort, sr
 
-import utils.ephemeral_port
+import utils.ephemeral_port 
+import pwd, grp
+
+
 
 OS_NAME = platform.system()
 
+def drop_privileges(uid_name='nobody', gid_name='nogroup'):
+    if os.getuid() == 0:
+        running_uid = pwd.getpwnam(uid_name).pw_uid
+        running_gid = grp.getgrnam(gid_name).gr_gid
+
+        os.setgroups([])
+        os.setgid(running_gid)
+        os.setuid(running_uid)
+        os.umask(0o077)
 
 def nslookup(user_iface=None):
     # there is no timeout in getaddrinfo(), so we have to do it ourselves
@@ -63,7 +75,9 @@ def get_meta(no_internet, public_ip, network_asn, network_name, country_code, ci
     network_name.value = ''
     country_code.value = ''
     city.value = ''
-    
+
+    drop_privileges()
+
     result_message =  "+=======================================================================+\n"
     result_message += "|         · - · · · detecting IP, ASN, country, etc · - · · ·           |\n"
     if not nslookup(user_iface):
