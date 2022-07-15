@@ -24,24 +24,6 @@ def drop_privileges(uid_name='nobody', gid_name='nogroup'):
         os.setuid(running_uid)
         os.umask(0o077)
 
-def nslookup(user_iface=None):
-    # there is no timeout in getaddrinfo(), so we have to do it ourselves
-    # Raw packets bypasses the firewall so it may not work as intended in some cases
-    dns_request = IP(
-        dst="1.1.1.1", id=RandShort(), ttl=128)/UDP(
-        sport=utils.ephemeral_port.ephemeral_port_reserve("udp"), dport=53)/DNS(
-            rd=1, id=RandShort(), qd=DNSQR(qname="speed.cloudflare.com"))
-    try:
-        request_and_answers, _ = sr(
-            dns_request, iface=user_iface, verbose=0, timeout=1)
-    except:
-        return False
-    if request_and_answers is not None and len(request_and_answers) != 0:
-        if request_and_answers[0][1].haslayer(DNS):
-            return True
-            # return request_and_answers[0][1][DNSRR].rdata
-    return False
-
 
 def get_meta_json():
     usereuid = None
@@ -80,8 +62,6 @@ def get_meta(no_internet, public_ip, network_asn, network_name, country_code, ci
 
     result_message =  "+=======================================================================+\n"
     result_message += "|         · - · · · detecting IP, ASN, country, etc · - · · ·           |\n"
-    if not nslookup(user_iface):
-        return 
     user_meta = get_meta_json()
     if user_meta is not None:
         no_internet.value = False
