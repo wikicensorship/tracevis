@@ -15,8 +15,6 @@ from scapy.all import (DNS, ICMP, IP, TCP, UDP, RandInt, RandShort, Raw, conf,
 import utils.ephemeral_port
 import utils.geolocate
 from utils.traceroute_struct import traceroute_data
-from multiprocessing import Process, Value, RawArray 
-import ctypes 
 
 
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
@@ -26,37 +24,6 @@ have_2_packet = False
 user_iface = None
 measurement_data = [[], []]
 OS_NAME = platform.system()
-
-USER_META_INFO_TIMEOUT = 60   # Seconds
-USER_META_INFO_NO_INTERNET = Value(ctypes.c_bool, True)
-USER_META_INFO_PUBLIC_IP = RawArray(ctypes.c_wchar, 40)
-USER_META_INFO_NETWORK_ASN = RawArray(ctypes.c_wchar, 100)
-USER_META_INFO_NETWORK_NAME = RawArray(ctypes.c_wchar, 100)
-USER_META_INFO_COUNTRY_CODE = RawArray(ctypes.c_wchar, 100)
-USER_META_INFO_CITY = RawArray(ctypes.c_wchar, 100)
-USER_META_INFO_START_TIME = 0
-USER_META_INFO_DONE = Value(ctypes.c_bool, False)
-
-def run_geolocate(user_iface):
-    p = Process(target=utils.geolocate.get_meta, 
-                args=(USER_META_INFO_NO_INTERNET, USER_META_INFO_PUBLIC_IP, 
-                      USER_META_INFO_NETWORK_ASN, USER_META_INFO_NETWORK_NAME, 
-                      USER_META_INFO_COUNTRY_CODE, USER_META_INFO_CITY, USER_META_INFO_DONE, user_iface), 
-                daemon=True)
-    p.start()
-    USER_META_INFO_START_TIME = time.time()
-    while time.time() - USER_META_INFO_START_TIME < USER_META_INFO_TIMEOUT and not USER_META_INFO_DONE.value:
-        sleep(SLEEP_TIME)
-
-    network_asn = USER_META_INFO_NETWORK_ASN.value
-    network_name = USER_META_INFO_NETWORK_NAME.value
-    country_code = USER_META_INFO_COUNTRY_CODE.value
-    city = USER_META_INFO_CITY.value
-    public_ip = USER_META_INFO_PUBLIC_IP.value
-    no_internet = USER_META_INFO_NO_INTERNET.value
-
-    return no_internet, public_ip, network_asn, network_name, country_code, city
-
 
 
 def choose_desirable_packet(request_and_answers, do_tcphandshake):
@@ -557,7 +524,7 @@ def trace_route(
     elif trace_retransmission:
         paris_id = -1
     
-    no_internet, public_ip, network_asn, network_name, country_code, city = run_geolocate(user_iface)
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.run_geolocate(user_iface)
     
     measurement_name = (f"{name_prefix}-{network_asn}-tracevis-" if name_prefix else f"{network_asn}-tracevis-") + datetime.utcnow().strftime("%Y%m%d-%H%M")
 

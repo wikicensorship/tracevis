@@ -1,28 +1,26 @@
 #!/usr/bin/env python3
 
-import json
 import os
+import json
+import time
+import ctypes 
 import platform
+import utils.ephemeral_port 
 from urllib.request import Request, urlopen
-
+from multiprocessing import Process, Value, RawArray 
 from scapy.all import DNS, DNSQR, DNSRR, IP, UDP, RandShort, sr
 
-import utils.ephemeral_port 
-import pwd, grp
 
 
 
 OS_NAME = platform.system()
 
-def drop_privileges(uid_name='nobody', gid_name='nogroup'):
+def drop_privileges():
     if os.name == 'posix':
         if os.getuid() == 0:
-            running_uid = pwd.getpwnam(uid_name).pw_uid
-            running_gid = grp.getgrnam(gid_name).gr_gid
-
             os.setgroups([])
-            os.setgid(running_gid)
-            os.setuid(running_uid)
+            os.setgid(65534)
+            os.setuid(65534)
             os.umask(0o077)
 
 
@@ -33,10 +31,6 @@ def get_meta_json():
     httprequest = Request(
         meta_url, headers={'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'})
     try:
-        if OS_NAME == "Linux":
-            if os.geteuid() == 0:
-                usereuid = os.geteuid()
-                os.seteuid(65534)  # user id of the user "nobody"
         with urlopen(httprequest, timeout=9) as response:
             if response.status == 200:
                 meta_json = json.load(response)
@@ -50,6 +44,36 @@ def get_meta_json():
         if usereuid != None:
             os.seteuid(usereuid)
 
+
+def run_geolocate(user_iface):
+    USER_META_INFO_TIMEOUT = 60   # Seconds
+    USER_META_INFO_NO_INTERNET = Value(ctypes.c_bool, True)
+    USER_META_INFO_PUBLIC_IP = RawArray(ctypes.c_wchar, 40)
+    USER_META_INFO_NETWORK_ASN = RawArray(ctypes.c_wchar, 100)
+    USER_META_INFO_NETWORK_NAME = RawArray(ctypes.c_wchar, 100)
+    USER_META_INFO_COUNTRY_CODE = RawArray(ctypes.c_wchar, 100)
+    USER_META_INFO_CITY = RawArray(ctypes.c_wchar, 100)
+    USER_META_INFO_START_TIME = 0
+    USER_META_INFO_DONE = Value(ctypes.c_bool, False)
+
+    p = Process(target=get_meta, 
+                args=(USER_META_INFO_NO_INTERNET, USER_META_INFO_PUBLIC_IP, 
+                      USER_META_INFO_NETWORK_ASN, USER_META_INFO_NETWORK_NAME, 
+                      USER_META_INFO_COUNTRY_CODE, USER_META_INFO_CITY, USER_META_INFO_DONE, user_iface), 
+                daemon=True)
+    p.start()
+    USER_META_INFO_START_TIME = time.time()
+    while time.time() - USER_META_INFO_START_TIME < USER_META_INFO_TIMEOUT and not USER_META_INFO_DONE.value:
+        time.sleep(1)
+
+    network_asn = USER_META_INFO_NETWORK_ASN.value
+    network_name = USER_META_INFO_NETWORK_NAME.value
+    country_code = USER_META_INFO_COUNTRY_CODE.value
+    city = USER_META_INFO_CITY.value
+    public_ip = USER_META_INFO_PUBLIC_IP.value
+    no_internet = USER_META_INFO_NO_INTERNET.value
+
+    return no_internet, public_ip, network_asn, network_name, country_code, city
 
 def get_meta(no_internet, public_ip, network_asn, network_name, country_code, city, is_done, user_iface=None):
     no_internet.value = True
