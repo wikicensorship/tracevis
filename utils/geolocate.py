@@ -80,7 +80,7 @@ def get_meta(no_internet, public_ip, network_asn, network_name, country_code, ci
 
 
 def run_geolocate():
-    USER_META_INFO_TIMEOUT = 60   # Seconds
+    USER_META_INFO_TIMEOUT = 10   # Seconds
     USER_META_INFO_NO_INTERNET = Value(ctypes.c_bool, True)
     USER_META_INFO_PUBLIC_IP = RawArray(ctypes.c_wchar, 40)
     USER_META_INFO_NETWORK_ASN = RawArray(ctypes.c_wchar, 100)
