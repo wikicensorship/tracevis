@@ -521,7 +521,7 @@ def trace_route(
     elif trace_retransmission:
         paris_id = -1
     
-    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.run_geolocate(user_iface)
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.run_geolocate()
     
     measurement_name = (f"{name_prefix}-{network_asn}-tracevis-" if name_prefix else f"{network_asn}-tracevis-") + datetime.utcnow().strftime("%Y%m%d-%H%M")
 
