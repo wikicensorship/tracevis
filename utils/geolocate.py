@@ -13,14 +13,6 @@ from multiprocessing import Process, Value, RawArray
 
 OS_NAME = platform.system()
 
-def drop_privileges():
-    if os.name == 'posix':
-        if os.getuid() == 0:
-            os.setgroups([])
-            os.setgid(65534)
-            os.setuid(65534)
-            os.umask(0o077)
-
 
 def get_meta_json():
     usereuid = None
@@ -42,6 +34,14 @@ def get_meta_json():
         if usereuid != None:
             os.seteuid(usereuid)
 
+
+def drop_privileges():
+    if os.name == 'posix':
+        if os.getuid() == 0:
+            os.setgroups([])
+            os.setgid(65534)
+            os.setuid(65534)
+            os.umask(0o077)
 
 
 def get_meta(no_internet, public_ip, network_asn, network_name, country_code, city, is_done, is_canceled):
