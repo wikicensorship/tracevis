@@ -16,7 +16,6 @@ import utils.ephemeral_port
 import utils.geolocate
 from utils.traceroute_struct import traceroute_data
 
-
 SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
@@ -378,7 +377,6 @@ def get_packets_info(request_packets):
     return packet_1_proto, packet_2_proto, packet_1_port, packet_2_port, packet_1_size, packet_2_size
 
 
-
 def save_measurement_data(
         request_ips, measurement_name, continue_to_max_ttl, output_dir):
     end_time = int(datetime.utcnow().timestamp())
@@ -463,7 +461,6 @@ def trace_route(
         dst_port: int = -1
 ):
     global user_iface
-
     user_iface = iface
     check_for_permission()
     measurement_name = ""
@@ -536,7 +533,6 @@ def trace_route(
         public_ip=public_ip, network_asn=network_asn, network_name=network_name,
         country_code=country_code, city=city
     )
-
     print("- · - · -     - · - · -     - · - · -     - · - · -")
     while repeat_all_steps < repeat_requests:
         repeat_all_steps += 1
