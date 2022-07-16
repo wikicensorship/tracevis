@@ -626,4 +626,3 @@ def trace_route(
         return(was_successful, data_path, no_internet)
     else:
         return(was_successful, "", no_internet)
-
