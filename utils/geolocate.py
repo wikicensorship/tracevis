@@ -47,7 +47,7 @@ def gain_privileges(uid, gid):
 
 def run_geolocate():
     def get_meta():
-        nonlocal no_internet, public_ip, network_asn, network_name, country_code, city, is_canceled, is_done
+        nonlocal no_internet, public_ip, network_asn, network_name, country_code, city, is_canceled
 
         no_internet = True
         public_ip = '127.1.2.7'  # we should know that what we are going to clean
@@ -79,7 +79,6 @@ def run_geolocate():
             if 'city' in user_meta.keys():
                 city = user_meta['city']
                 print("· · · - · " + city)
-        is_done = True
 
 
     user_meta_info_timeout = 10   # Seconds
@@ -89,7 +88,6 @@ def run_geolocate():
     network_name = ""
     country_code = ""
     city = ""
-    is_done = False
     is_canceled = False
 
     user_meta_info_start_time = 0
@@ -98,9 +96,9 @@ def run_geolocate():
     p = Thread(target=get_meta, daemon=True)
     p.start()
     user_meta_info_start_time = time.time()
-    while time.time() - user_meta_info_start_time < user_meta_info_timeout and not is_done:
+    while time.time() - user_meta_info_start_time < user_meta_info_timeout and no_internet:
         time.sleep(1)
-    if not is_done:
+    if no_internet:
         is_canceled = True
         
     gain_privileges(uid, gid)
