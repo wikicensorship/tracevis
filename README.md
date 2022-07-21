@@ -18,7 +18,7 @@ You need to install [npcap](https://npcap.com/) in **Windows**. If you already h
 
 (**Not** required on **Linux**.)
 
-### Using ducker:
+### Using docker:
 ##### Pull docker image from github container registry:
 
 ```sh
