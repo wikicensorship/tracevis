@@ -262,6 +262,11 @@ def save_measurement_graph(graph_name, attach_jscss):
         graph_name = graph_name[:-5]
     graph_path = graph_name + ".html"
     net_vis.save_graph(graph_path)
+    try:
+        import pygraphviz
+        nx.nx_agraph.write_dot(multi_directed_graph, graph_name + ".dot")
+    except ImportError:
+        pass
     print("saved: " + graph_path)
 
 
