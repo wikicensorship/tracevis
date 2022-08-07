@@ -150,7 +150,7 @@ change the behavior of the trace route
     parser.add_argument('--iface', type=str,
                         help="set the target network interface name or index mumber")
     parser.add_argument('--show-ifaces', action='store_true',
-                        help="show the network interfaces (conf.route)")
+                        help="show the network interfaces")
     if len(sys_args) == 0 and auto_exit:
         parser.print_help()
         sys.exit(1)

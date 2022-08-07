@@ -7,8 +7,8 @@ def show_ifaces():
 
 def get_iface_object(name_or_index):
     from scapy.all import IFACES
-    if name_or_index is None or name_or_index == "":
-        print("please set a iface name or index number")
+    if name_or_index == "":
+        print("please set a correct iface name or index number")
         show_ifaces()
         exit()
     else:
