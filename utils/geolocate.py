@@ -15,10 +15,11 @@ OS_NAME = platform.system()
 def nslookup(user_iface, user_source_ip_address):
     # there is no timeout in getaddrinfo(), so we have to do it ourselves
     # Raw packets bypasses the firewall so it may not work as intended in some cases
-    dns_request = IP(src=user_source_ip_address,
-        dst="1.1.1.1", id=RandShort(), ttl=128)/UDP(
-        sport=utils.ephemeral_port.ephemeral_port_reserve(user_source_ip_address,"udp"), dport=53)/DNS(
-            rd=1, id=RandShort(), qd=DNSQR(qname="speed.cloudflare.com"))
+    dns_request = IP(
+        src=user_source_ip_address, dst="1.1.1.1", id=RandShort(), ttl=128)/UDP(
+            sport=utils.ephemeral_port.ephemeral_port_reserve(
+                user_source_ip_address,  "udp"), dport=53)/DNS(
+                    rd=1, id=RandShort(), qd=DNSQR(qname="speed.cloudflare.com"))
     try:
         request_and_answers, _ = sr(
             dns_request, iface=user_iface, verbose=0, timeout=1)
