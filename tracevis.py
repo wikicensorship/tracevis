@@ -15,6 +15,7 @@ import utils.packet_input
 import utils.ripe_atlas
 import utils.trace
 import utils.vis
+import utils.iface
 
 TIMEOUT = 1
 MAX_TTL = 50
@@ -22,11 +23,6 @@ REPEAT_REQUESTS = 3
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
 DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
-
-
-def show_conf_route():
-    from scapy.all import conf
-    print(conf.route)
 
 
 def combine_json_files(json_list_files):
@@ -152,7 +148,7 @@ change the behavior of the trace route
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
     parser.add_argument('--iface', type=str,
-                        help="set the target network interface")
+                        help="set the target network interface name or index mumber")
     parser.add_argument('--show-ifaces', action='store_true',
                         help="show the network interfaces (conf.route)")
     if len(sys_args) == 0 and auto_exit:
@@ -240,13 +236,9 @@ def main(args):
         else:
             pass  # "new" is default
     if args.get("iface"):
-        if args["iface"] == "":
-            show_conf_route()
-            exit()
-        else:
-            iface = args["iface"]
+        iface = utils.iface.get_iface_object(args["iface"])
     if args.get("show_ifaces"):
-        show_conf_route()
+        utils.iface.show_ifaces()
         exit()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
