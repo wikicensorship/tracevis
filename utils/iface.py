@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import sys
+
+
 def show_ifaces():
     from scapy.all import IFACES
     print(IFACES)
@@ -10,7 +13,7 @@ def get_iface_object(name_or_index):
     if name_or_index == "":
         print("please set a correct iface name or index number")
         show_ifaces()
-        exit(1)
+        sys.exit(1)
     else:
         iface_object = None
         try:

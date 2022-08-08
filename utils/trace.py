@@ -486,7 +486,7 @@ def trace_route(
         annotation_2 += " (+tcph)"
     if request_packet_1 is None:
         print("packet is invalid!")
-        exit()
+        sys.exit(1)
     if request_packet_2 == "":
         if trace_retransmission:
             request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
@@ -512,10 +512,10 @@ def trace_route(
             if have_2_packet:
                 if request_packet_2[IP].dst == "" or request_packet_2[IP].dst == LOCALHOST:
                     print("You must set at least one IP. (--ips || -i)")
-                    exit()
+                    sys.exit(1)
             else:
                 print("You must set at least one IP. (--ips || -i)")
-                exit()
+                sys.exit(1)
         else:
             request_ips.append(request_packet_1[IP].dst)
         if have_2_packet:

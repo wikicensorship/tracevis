@@ -11,11 +11,11 @@ from copy import deepcopy
 
 import utils.csv
 import utils.dns
+import utils.iface
 import utils.packet_input
 import utils.ripe_atlas
 import utils.trace
 import utils.vis
-import utils.iface
 
 TIMEOUT = 1
 MAX_TTL = 50
@@ -239,7 +239,7 @@ def main(args):
         iface = utils.iface.get_iface_object(args["iface"])
     if args.get("show_ifaces"):
         utils.iface.show_ifaces()
-        exit()
+        sys.exit()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix += "dns"
@@ -267,10 +267,10 @@ def main(args):
                 raise RuntimeError("Bad input type")
         except (utils.packet_input.BADPacketException, utils.packet_input.FirewallException) as e:
             print(f"{e!s}")
-            exit(1)
+            sys.exit(1)
         except Exception as e:
             print(f"Error!\n{e!s}")
-            exit(2)
+            sys.exit(2)
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
@@ -292,7 +292,7 @@ def main(args):
                 dst_port=dst_port)
         except Exception as e:
             print(f"Error!\n{e!s}")
-            exit(2)
+            sys.exit(2)
         if no_internet:
             attach_jscss = True
     if args.get("ripe"):
@@ -317,7 +317,7 @@ def main(args):
                 measurement_path = args["file"][0][0]
         except Exception as e:
             print(f"Error!\n{e!s}")
-            exit(1)
+            sys.exit(1)
         if args.get("csv"):
             utils.csv.json2csv(measurement_path)
         elif args.get("csvraw"):
