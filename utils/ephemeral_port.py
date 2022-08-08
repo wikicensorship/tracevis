@@ -13,7 +13,13 @@ def ephemeral_port_reserve(user_source_ip_address: str, proto: str = "tcp"):
         socketkind = socket.SOCK_DGRAM
         ipproto = socket.IPPROTO_UDP
     with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s:
-        s.bind((user_source_ip_address, 0))
+        try:
+            s.bind((user_source_ip_address, 0))
+        except:
+            print("An error occurred when trying to bind to:" + str(user_source_ip_address))
+            print("It seems that the specified network interface is not connected to the network.")
+            print("Please make sure you are connected to the network or choose a correct iface.")
+            raise
         # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
         if proto == "tcp":
             s.listen(1)
