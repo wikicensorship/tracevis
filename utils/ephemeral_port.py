@@ -3,21 +3,17 @@
 import contextlib
 import socket
 
-from scapy.all import conf, get_if_addr
-
-SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
-
 # ephemeral_port_reserve() function is based on https://github.com/Yelp/ephemeral-port-reserve
 
 
-def ephemeral_port_reserve(proto: str = "tcp"):
+def ephemeral_port_reserve(user_source_ip_address: str, proto: str = "tcp"):
     socketkind = socket.SOCK_STREAM
     ipproto = socket.IPPROTO_TCP
     if proto == "udp":
         socketkind = socket.SOCK_DGRAM
         ipproto = socket.IPPROTO_UDP
     with contextlib.closing(socket.socket(socket.AF_INET, socketkind, ipproto)) as s:
-        s.bind((SOURCE_IP_ADDRESS, 0))
+        s.bind((user_source_ip_address, 0))
         # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
         if proto == "tcp":
             s.listen(1)
