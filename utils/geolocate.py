@@ -169,6 +169,11 @@ def windows_run_geolocate():
 
 
 def run_geolocate():
+    # threat windows and other posix systems differently
+    # windows get suspious when we spawn an independant Process 
+    # so we need to use thread for that
+    # in other posix systems we need dropping privilege and as 
+    # this is not possible in python threads we stick to process for those systems
     if os.name == "posix":
         return posix_run_geolocate()
     return windows_run_geolocate()
