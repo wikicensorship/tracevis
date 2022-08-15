@@ -31,19 +31,11 @@ def get_meta_json():
 
 
 def drop_privileges():
-    if os.name == 'posix':
-        if os.geteuid() == 0:
-            uid = os.geteuid()
-            gid = os.getegid()
-            os.setegid(65534)
-            os.seteuid(65534)
-            return uid, gid
-    return None, None
+    os.setgroups([])
+    os.setresgid(65534, 65534, 65534)
+    os.setresuid(65534, 65534, 65534)
+    os.umask(0o077)
 
-def gain_privileges(uid, gid):
-    if uid is not None and gid is not None:
-        os.setegid(gid)
-        os.seteuid(uid)
 
 
 def posix_run_geolocate():
@@ -95,7 +87,6 @@ def posix_run_geolocate():
     country_code = RawArray(ctypes.c_wchar, 100)
     city = RawArray(ctypes.c_wchar, 100)
     
-    uid, gid = drop_privileges()
     p = Process(target=get_meta, daemon=True, args=(no_internet, public_ip, network_asn, network_name, country_code, city))
     p.start()
     user_meta_info_start_time = time.time()
@@ -103,8 +94,6 @@ def posix_run_geolocate():
     while time.time() - user_meta_info_start_time < user_meta_info_timeout and no_internet: 
         time.sleep(1)
     
-    gain_privileges(uid, gid)
-
     return no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value
 
 
