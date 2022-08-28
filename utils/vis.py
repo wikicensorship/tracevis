@@ -5,8 +5,8 @@ import json
 import os
 
 import networkx as nx
-from pyvis.network import Network
 import pyvis._version
+from pyvis.network import Network
 
 ROUTER_COLOR = "green"
 WINDOWS_COLOR = "blue"
@@ -346,12 +346,14 @@ def vis(measurement_path, attach_jscss, edge_lable: str = "none"):
                                         device_name = PEP_NAME
                                         current_node_shape = "star"
                                         already_detected[repeat_steps]["is_pep"] = True
-                                        current_node_id = "pep" + current_node_id + "x"
+                                        if current_node_id != dst_addr_id:
+                                            current_node_id = "pep" + current_node_id + "x"
                                     elif is_nat and not already_detected[repeat_steps]["is_nat"]:
                                         device_color = NAT_COLOR
                                         device_name = NAT_NAME
                                         already_detected[repeat_steps]["is_nat"] = True
-                                        current_node_id = "nat" + current_node_id + "x"
+                                        if current_node_id != dst_addr_id:
+                                            current_node_id = "nat" + current_node_id + "x"
                                     append_lines = tooltips_append_lines(
                                         is_nat, is_middlebox, is_pep, packet_type, tcpflag)
                                     if (is_middlebox_ttl or is_middlebox):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import sys
 import urllib.request
 from datetime import datetime
 from time import sleep
@@ -60,7 +61,7 @@ def download_from_atlas(
         print(
             " ********************************************************************** ")
         if len(all_measurements) < 1:
-            exit()
+            sys.exit(1)
         measurement_path = output_dir + measurement_name + ".json"
         print("saving json file... to: " + measurement_path)
         with open((measurement_path), 'w', encoding='utf-8') as json_file:

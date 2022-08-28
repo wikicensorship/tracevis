@@ -16,11 +16,12 @@ import utils.ephemeral_port
 import utils.geolocate
 from utils.traceroute_struct import traceroute_data
 
-SOURCE_IP_ADDRESS = get_if_addr(conf.iface)
+
 LOCALHOST = '127.0.0.1'
 SLEEP_TIME = 1
 have_2_packet = False
-user_iface = None
+user_iface = conf.iface
+user_source_ip_address = get_if_addr(user_iface)
 measurement_data = [[], []]
 OS_NAME = platform.system()
 
@@ -152,6 +153,7 @@ def get_new_timestamp():
 
 def send_packet_with_tcphandshake(this_request, timeout):
     global user_iface
+    global user_source_ip_address
     timestamp_start, new_timestamp = get_new_timestamp()
     ip_address = this_request[IP].dst
     destination_port = this_request[TCP].dport
@@ -162,9 +164,10 @@ def send_packet_with_tcphandshake(this_request, timeout):
     # we are trying to trace packet data, not SYN packet. And
     # we know about intermittent stream blocking
     while len(ans) == 0 and max_repeat < 5:
-        source_port = utils.ephemeral_port.ephemeral_port_reserve("tcp")
-        send_syn = IP(
-            dst=ip_address, id=RandShort(), flags="DF")/TCP(
+        source_port = utils.ephemeral_port.ephemeral_port_reserve(
+            user_source_ip_address, "tcp")
+        send_syn = IP(src=user_source_ip_address,
+                      dst=ip_address, id=RandShort(), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=RandInt(),
             flags="S", options=syn_tcp_options)
         tcp_handshake_timeout = timeout + max_repeat
@@ -186,13 +189,13 @@ def send_packet_with_tcphandshake(this_request, timeout):
             int((time.time() - timestamp_start) * 1000)
         ack_tcp_options = generate_ack_tcp_options(
             new_timestamp, syn_ack_timestamp)
-        send_ack = IP(
-            dst=ip_address, id=(ans[0][0][IP].id + 1), flags="DF")/TCP(
+        send_ack = IP(src=user_source_ip_address,
+                      dst=ip_address, id=(ans[0][0][IP].id + 1), flags="DF")/TCP(
             sport=source_port, dport=destination_port, seq=ans[0][1][TCP].ack,
             ack=ans[0][1][TCP].seq + 1, flags="A", options=ack_tcp_options)
         send(send_ack, iface=user_iface, verbose=0)
         send_data = this_request
-        del(send_data[IP].src)
+        send_data[IP].src = user_source_ip_address
         send_data[IP].id = ans[0][0][IP].id + 2
         send_data[TCP].sport = source_port
         send_data[TCP].seq = ans[0][1][TCP].ack
@@ -217,10 +220,11 @@ def send_packet_with_tcphandshake(this_request, timeout):
 
 def send_single_packet(this_request, timeout):
     global user_iface
+    global user_source_ip_address
     this_request[IP].id = RandShort()
     if this_request.haslayer(TCP):
         this_request[TCP].sport = utils.ephemeral_port.ephemeral_port_reserve(
-            "tcp")
+            user_source_ip_address, "tcp")
         if this_request[TCP].flags == "S":
             this_request[TCP].seq = RandInt()
         _, new_timestamp = get_new_timestamp()
@@ -229,7 +233,7 @@ def send_single_packet(this_request, timeout):
         del(this_request[TCP].chksum)
     elif this_request.haslayer(UDP):
         this_request[UDP].sport = utils.ephemeral_port.ephemeral_port_reserve(
-            "udp")
+            user_source_ip_address, "udp")
         del(this_request[UDP].len)
         del(this_request[UDP].chksum)
     if this_request.haslayer(DNS):
@@ -256,7 +260,8 @@ def retransmission_single_packet(this_request, timeout, is_data_packet):
 
 def send_packet(request_packet, request_ip, current_ttl, timeout, do_tcphandshake, trace_retransmission, do_not_parse):
     this_request = request_packet
-    del(this_request[IP].src)
+    global user_source_ip_address
+    this_request[IP].src = user_source_ip_address
     this_request[IP].dst = request_ip
     this_request[IP].ttl = current_ttl
     if not do_not_parse:
@@ -309,7 +314,7 @@ def are_equal(original_list, result_list):
 def initialize_first_nodes_json(request_ips):
     nodes = []
     for _ in request_ips:
-        nodes.append(SOURCE_IP_ADDRESS)
+        nodes.append(user_source_ip_address)
     if have_2_packet:
         return [nodes, nodes.copy()]
     else:
@@ -320,13 +325,12 @@ def initialize_json_first_nodes(
         request_ips, annotation_1, annotation_2, packet_1_proto, packet_2_proto,
         packet_1_port, packet_2_port, packet_1_size, packet_2_size, paris_id,
         public_ip, network_asn, network_name, country_code, city):
-    source_address = SOURCE_IP_ADDRESS
     start_time = int(datetime.utcnow().timestamp())
     for request_ip in request_ips:
         measurement_data[0].append(
             traceroute_data(
                 dst_addr=request_ip, annotation=annotation_1,
-                src_addr=source_address, proto=packet_1_proto, port=packet_1_port,
+                src_addr=user_source_ip_address, proto=packet_1_proto, port=packet_1_port,
                 timestamp=start_time, paris_id=paris_id, size=packet_1_size,
                 from_ip=public_ip, network_asn=network_asn,
                 network_name=network_name, country_code=country_code, city=city
@@ -336,7 +340,7 @@ def initialize_json_first_nodes(
             measurement_data[1].append(
                 traceroute_data(
                     dst_addr=request_ip, annotation=annotation_2,
-                    src_addr=source_address, proto=packet_2_proto, port=packet_2_port,
+                    src_addr=user_source_ip_address, proto=packet_2_proto, port=packet_2_port,
                     timestamp=start_time, paris_id=paris_id, size=packet_2_size,
                     from_ip=public_ip, network_asn=network_asn,
                     network_name=network_name, country_code=country_code, city=city
@@ -439,8 +443,10 @@ def change_dst_port(request_packet, dst_port):
 
 def check_for_permission():
     global user_iface
+    global user_source_ip_address
     try:
         this_request = IP(
+            src=user_source_ip_address,
             dst=LOCALHOST, ttl=0)/TCP(
             sport=0, dport=53)/DNS()
         sr1(this_request, iface=user_iface, verbose=0, timeout=0)
@@ -460,8 +466,11 @@ def trace_route(
         trace_with_retransmission: bool = False, iface=None,
         dst_port: int = -1
 ):
-    global user_iface
-    user_iface = iface
+    if iface is not None:
+        global user_iface
+        user_iface = iface
+        global user_source_ip_address
+        user_source_ip_address = get_if_addr(user_iface)
     check_for_permission()
     measurement_name = ""
     request_packets = []
@@ -477,7 +486,7 @@ def trace_route(
         annotation_2 += " (+tcph)"
     if request_packet_1 is None:
         print("packet is invalid!")
-        exit()
+        sys.exit(1)
     if request_packet_2 == "":
         if trace_retransmission:
             request_packet_1[IP].id += 15  # == sysctl net.ipv4.tcp_retries2
@@ -503,10 +512,10 @@ def trace_route(
             if have_2_packet:
                 if request_packet_2[IP].dst == "" or request_packet_2[IP].dst == LOCALHOST:
                     print("You must set at least one IP. (--ips || -i)")
-                    exit()
+                    sys.exit(1)
             else:
                 print("You must set at least one IP. (--ips || -i)")
-                exit()
+                sys.exit(1)
         else:
             request_ips.append(request_packet_1[IP].dst)
         if have_2_packet:

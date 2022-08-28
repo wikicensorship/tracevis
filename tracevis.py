@@ -11,6 +11,7 @@ from copy import deepcopy
 
 import utils.csv
 import utils.dns
+import utils.iface
 import utils.packet_input
 import utils.ripe_atlas
 import utils.trace
@@ -22,11 +23,6 @@ REPEAT_REQUESTS = 3
 DEFAULT_OUTPUT_DIR = "./tracevis_data/"
 DEFAULT_REQUEST_IPS = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
 OS_NAME = platform.system()
-
-
-def show_conf_route():
-    from scapy.all import conf
-    print(conf.route)
 
 
 def combine_json_files(json_list_files):
@@ -152,9 +148,9 @@ change the behavior of the trace route
 - 'new,rexmit' : to begin with the 'new' option in each of the three steps for all destinations and then rexmit"""
                         )
     parser.add_argument('--iface', type=str,
-                        help="set the target network interface")
+                        help="set the target network interface name or index mumber")
     parser.add_argument('--show-ifaces', action='store_true',
-                        help="show the network interfaces (conf.route)")
+                        help="show the network interfaces")
     if len(sys_args) == 0 and auto_exit:
         parser.print_help()
         sys.exit(1)
@@ -240,14 +236,10 @@ def main(args):
         else:
             pass  # "new" is default
     if args.get("iface"):
-        if args["iface"] == "":
-            show_conf_route()
-            exit()
-        else:
-            iface = args["iface"]
+        iface = utils.iface.get_iface_object(args["iface"])
     if args.get("show_ifaces"):
-        show_conf_route()
-        exit()
+        utils.iface.show_ifaces()
+        sys.exit()
     if args.get("dns") or args.get("dnstcp"):
         do_traceroute = True
         name_prefix += "dns"
@@ -275,10 +267,10 @@ def main(args):
                 raise RuntimeError("Bad input type")
         except (utils.packet_input.BADPacketException, utils.packet_input.FirewallException) as e:
             print(f"{e!s}")
-            exit(1)
+            sys.exit(1)
         except Exception as e:
             print(f"Error!\n{e!s}")
-            exit(2)
+            sys.exit(2)
         if do_tcph1 or do_tcph2:
             name_prefix += "-tcph"
     if trace_with_retransmission:
@@ -300,7 +292,7 @@ def main(args):
                 dst_port=dst_port)
         except Exception as e:
             print(f"Error!\n{e!s}")
-            exit(2)
+            sys.exit(2)
         if no_internet:
             attach_jscss = True
     if args.get("ripe"):
@@ -325,7 +317,7 @@ def main(args):
                 measurement_path = args["file"][0][0]
         except Exception as e:
             print(f"Error!\n{e!s}")
-            exit(1)
+            sys.exit(1)
         if args.get("csv"):
             utils.csv.json2csv(measurement_path)
         elif args.get("csvraw"):
