@@ -37,39 +37,42 @@ def drop_privileges():
     os.umask(0o077)
 
 
+def get_meta_vars():
+    no_internet = True
+    public_ip = '127.1.2.7'  # we should know that what we are going to clean
+    network_asn = 'AS0'
+    network_name = ''
+    country_code = ''
+    city = ''
+
+    print("· - · · · detecting IP, ASN, country, etc (Posix) · - · · · ")
+    user_meta = get_meta_json()
+    if user_meta is not None :
+        no_internet = False
+        if 'clientIp' in user_meta.keys():
+            public_ip = user_meta['clientIp']
+            print("· · · - · " + public_ip)
+            print('. - . - . we use public IP to know what to remove from data!')
+        if 'asn' in user_meta.keys():
+            network_asn = ("AS" + str(user_meta['asn']))
+            print("· · · - · " + network_asn)
+        if 'asOrganization' in user_meta.keys():
+            network_name = user_meta['asOrganization']
+            print("· · · - · " + network_name)
+        if 'country' in user_meta.keys():
+            country_code = user_meta['country']
+            print("· · · - · " + country_code)
+        if 'city' in user_meta.keys():
+            city = user_meta['city']
+            print("· · · - · " + city)
+    return no_internet, public_ip, network_asn, network_name, country_code, city
+    
 
 def posix_run_geolocate():
     def get_meta(no_internet, public_ip, network_asn, network_name, country_code, city):
+        no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value = get_meta_vars()
 
-        no_internet.value = True
-        public_ip.value = '127.1.2.7'  # we should know that what we are going to clean
-        network_asn.value = 'AS0'
-        network_name.value = ''
-        country_code.value = ''
-        city.value = ''
-
-        print("· - · · · detecting IP, ASN, country, etc (Posix) · - · · · ")
-        user_meta = get_meta_json()
-        if user_meta is not None :
-            no_internet.value = False
-            if 'clientIp' in user_meta.keys():
-                public_ip.value = user_meta['clientIp']
-                print("· · · - · " + public_ip.value)
-                print('. - . - . we use public IP to know what to remove from data!')
-            if 'asn' in user_meta.keys():
-                network_asn.value = ("AS" + str(user_meta['asn']))
-                print("· · · - · " + network_asn.value)
-            if 'asOrganization' in user_meta.keys():
-                network_name.value = user_meta['asOrganization']
-                print("· · · - · " + network_name.value)
-            if 'country' in user_meta.keys():
-                country_code.value = user_meta['country']
-                print("· · · - · " + country_code.value)
-            if 'city' in user_meta.keys():
-                city.value = user_meta['city']
-                print("· · · - · " + city.value)
-
-
+    
     user_meta_info_timeout = 10   # Seconds
     no_internet = True 
     public_ip = ""
@@ -101,46 +104,16 @@ def posix_run_geolocate():
 def windows_run_geolocate():
     def get_meta():
         nonlocal no_internet, public_ip, network_asn, network_name, country_code, city, is_canceled
-
-        no_internet = True
-        public_ip = '127.1.2.7'  # we should know that what we are going to clean
-        network_asn = 'AS0'
-        network_name = ''
-        country_code = ''
-        city = ''
-
-
-        print("· - · · · detecting IP, ASN, country, etc (Windows) · - · · · ")
-        user_meta = get_meta_json()
-        if is_canceled:
-            return
-        if user_meta is not None :
-            no_internet = False
-            if 'clientIp' in user_meta.keys():
-                public_ip = user_meta['clientIp']
-                print("· · · - · " + public_ip)
-                print('. - . - . we use public IP to know what to remove from data!')
-            if 'asn' in user_meta.keys():
-                network_asn = ("AS" + str(user_meta['asn']))
-                print("· · · - · " + network_asn)
-            if 'asOrganization' in user_meta.keys():
-                network_name = user_meta['asOrganization']
-                print("· · · - · " + network_name)
-            if 'country' in user_meta.keys():
-                country_code = user_meta['country']
-                print("· · · - · " + country_code)
-            if 'city' in user_meta.keys():
-                city = user_meta['city']
-                print("· · · - · " + city)
+        no_internet, public_ip, network_asn, network_name, country_code, city = get_meta_vars()
 
 
     user_meta_info_timeout = 10   # Seconds
-    no_internet = True 
-    public_ip = ""
-    network_asn = ""
-    network_name = ""
-    country_code = ""
-    city = ""
+    no_internet = True
+    public_ip = '127.1.2.7'  # we should know that what we are going to clean
+    network_asn = 'AS0'
+    network_name = ''
+    country_code = ''
+    city = ''
     is_canceled = False
 
     user_meta_info_start_time = 0
