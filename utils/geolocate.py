@@ -16,7 +16,7 @@ def get_meta_json():
     meta_url = 'https://speed.cloudflare.com/meta'
     # TODO(xhdix): change versioning
     httprequest = Request(
-        meta_url, headers={'user-agent': 'TraceVis/0.7.0 (WikiCensorship)'})
+        meta_url, headers={'user-agent': 'TraceVis/0.10.5 (WikiCensorship)'})
     try:
         with urlopen(httprequest, timeout=9) as response:
             if response.status == 200:
