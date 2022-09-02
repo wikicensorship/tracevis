@@ -529,14 +529,12 @@ def trace_route(
         paris_id = repeat_requests
     elif trace_retransmission:
         paris_id = -1
-    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.get_meta(
-        user_iface, user_source_ip_address)
-    if name_prefix != "":
-        measurement_name = name_prefix + '-' + network_asn + "-tracevis-" + \
-            datetime.utcnow().strftime("%Y%m%d-%H%M")
-    else:
-        measurement_name = network_asn + "-tracevis-" + \
-            datetime.utcnow().strftime("%Y%m%d-%H%M")
+
+    no_internet, public_ip, network_asn, network_name, country_code, city = utils.geolocate.run_geolocate()
+
+    measurement_name = (f"{name_prefix}-{network_asn}-tracevis-" if name_prefix else f"{network_asn}-tracevis-") + \
+        datetime.utcnow().strftime("%Y%m%d-%H%M")
+
     initialize_json_first_nodes(
         request_ips=request_ips, annotation_1=annotation_1, annotation_2=annotation_2,
         packet_1_proto=p1_proto, packet_2_proto=p2_proto,
