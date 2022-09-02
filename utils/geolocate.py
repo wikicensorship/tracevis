@@ -44,7 +44,7 @@ def get_meta_vars():
     country_code = ''
     city = ''
 
-    print("· - · · · detecting IP, ASN, country, etc (Posix) · - · · · ")
+    print("· - · · · detecting IP, ASN, country, etc · - · · · ")
     user_meta = get_meta_json()
     if user_meta is not None:
         no_internet = False
@@ -69,31 +69,23 @@ def get_meta_vars():
 
 def posix_run_geolocate():
     def get_meta(no_internet, public_ip, network_asn, network_name, country_code, city):
+        drop_privileges()
         no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value = get_meta_vars()
 
     user_meta_info_timeout = 10   # Seconds
-    no_internet = True
-    public_ip = ""
-    network_asn = ""
-    network_name = ""
-    country_code = ""
-    city = ""
-
-    user_meta_info_start_time = 0
-
     no_internet = Value(ctypes.c_bool, True)
     public_ip = RawArray(ctypes.c_wchar, 40)
+    public_ip.value = '127.1.2.7'
     network_asn = RawArray(ctypes.c_wchar, 100)
+    network_asn.value = 'AS0'
     network_name = RawArray(ctypes.c_wchar, 100)
     country_code = RawArray(ctypes.c_wchar, 100)
     city = RawArray(ctypes.c_wchar, 100)
-
     p = Process(target=get_meta, daemon=True, args=(
         no_internet, public_ip, network_asn, network_name, country_code, city))
     p.start()
     user_meta_info_start_time = time.time()
-
-    while time.time() - user_meta_info_start_time < user_meta_info_timeout and no_internet:
+    while (time.time() - user_meta_info_start_time < user_meta_info_timeout) and no_internet.value:
         time.sleep(1)
 
     return no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value
@@ -101,7 +93,7 @@ def posix_run_geolocate():
 
 def windows_run_geolocate():
     def get_meta():
-        nonlocal no_internet, public_ip, network_asn, network_name, country_code, city, is_canceled
+        nonlocal no_internet, public_ip, network_asn, network_name, country_code, city
         no_internet, public_ip, network_asn, network_name, country_code, city = get_meta_vars()
 
     user_meta_info_timeout = 10   # Seconds
@@ -111,17 +103,12 @@ def windows_run_geolocate():
     network_name = ''
     country_code = ''
     city = ''
-    is_canceled = False
-
     user_meta_info_start_time = 0
-
     p = Thread(target=get_meta, daemon=True)
     p.start()
     user_meta_info_start_time = time.time()
-    while time.time() - user_meta_info_start_time < user_meta_info_timeout and no_internet:
+    while (time.time() - user_meta_info_start_time < user_meta_info_timeout) and no_internet:
         time.sleep(1)
-    if no_internet:
-        is_canceled = True
 
     return no_internet, public_ip, network_asn, network_name, country_code, city
 
