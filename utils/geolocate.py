@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import os
+import ctypes
 import json
-import time
+import os
 import platform
+import time
+from multiprocessing import Process, RawArray, Value
+from threading import Thread
 from urllib.request import Request, urlopen
-from multiprocessing import Process, Value, RawArray 
-import ctypes 
-from threading import Thread 
-
 
 OS_NAME = platform.system()
 
@@ -66,15 +65,14 @@ def get_meta_vars():
             city = user_meta['city']
             print("· · · - · " + city)
     return no_internet, public_ip, network_asn, network_name, country_code, city
-    
+
 
 def posix_run_geolocate():
     def get_meta(no_internet, public_ip, network_asn, network_name, country_code, city):
         no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value = get_meta_vars()
 
-    
     user_meta_info_timeout = 10   # Seconds
-    no_internet = True 
+    no_internet = True
     public_ip = ""
     network_asn = ""
     network_name = ""
@@ -89,23 +87,22 @@ def posix_run_geolocate():
     network_name = RawArray(ctypes.c_wchar, 100)
     country_code = RawArray(ctypes.c_wchar, 100)
     city = RawArray(ctypes.c_wchar, 100)
-    
-    p = Process(target=get_meta, daemon=True, args=(no_internet, public_ip, network_asn, network_name, country_code, city))
+
+    p = Process(target=get_meta, daemon=True, args=(
+        no_internet, public_ip, network_asn, network_name, country_code, city))
     p.start()
     user_meta_info_start_time = time.time()
 
-    while time.time() - user_meta_info_start_time < user_meta_info_timeout and no_internet: 
+    while time.time() - user_meta_info_start_time < user_meta_info_timeout and no_internet:
         time.sleep(1)
-    
-    return no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value
 
+    return no_internet.value, public_ip.value, network_asn.value, network_name.value, country_code.value, city.value
 
 
 def windows_run_geolocate():
     def get_meta():
         nonlocal no_internet, public_ip, network_asn, network_name, country_code, city, is_canceled
         no_internet, public_ip, network_asn, network_name, country_code, city = get_meta_vars()
-
 
     user_meta_info_timeout = 10   # Seconds
     no_internet = True
@@ -125,16 +122,15 @@ def windows_run_geolocate():
         time.sleep(1)
     if no_internet:
         is_canceled = True
-        
-    return no_internet, public_ip, network_asn, network_name, country_code, city
 
+    return no_internet, public_ip, network_asn, network_name, country_code, city
 
 
 def run_geolocate():
     # threat windows and other posix systems differently
-    # windows get suspicious when we spawn an independent Process 
+    # windows get suspicious when we spawn an independent Process
     # so we need to use thread for that
-    # in other posix systems we need dropping privilege and as 
+    # in other posix systems we need dropping privilege and as
     # this is not possible in python threads we stick to process for those systems
     if os.name == "posix":
         return posix_run_geolocate()
