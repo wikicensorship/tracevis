@@ -47,7 +47,7 @@ def get_meta_vars():
 
     print("· - · · · detecting IP, ASN, country, etc (Posix) · - · · · ")
     user_meta = get_meta_json()
-    if user_meta is not None :
+    if user_meta is not None:
         no_internet = False
         if 'clientIp' in user_meta.keys():
             public_ip = user_meta['clientIp']
